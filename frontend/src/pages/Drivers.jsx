@@ -26,6 +26,50 @@ export default function Drivers() {
   });
 
   const [formError, setFormError] = useState('');
+  const [extractingLicense, setExtractingLicense] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+
+    setUploadingPhoto(true);
+    setFormError('');
+    try {
+      const response = await api.post('/api/drivers/upload-avatar', formDataObj);
+      setFormData(prev => ({ ...prev, avatar_url: response.url }));
+    } catch (err) {
+      setFormError(err.message || 'Failed to upload photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleLicenseUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+
+    setExtractingLicense(true);
+    setFormError('');
+    try {
+      const response = await api.post('/api/drivers/extract-license', formDataObj);
+      setFormData(prev => ({
+        ...prev,
+        license_number: response.license_number,
+        license_expiry_date: response.license_expiry_date,
+      }));
+    } catch (err) {
+      setFormError(err.message || 'Failed to extract license details.');
+    } finally {
+      setExtractingLicense(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -263,6 +307,34 @@ export default function Drivers() {
                   </div>
                 </div>
 
+                {/* License Expiry Alerts */}
+                {isExpired && (
+                  <div className="p-3 bg-error-container text-on-error-container text-xs rounded-xl flex items-start gap-2 border border-error/15">
+                    <span className="material-symbols-outlined text-base text-error shrink-0">warning</span>
+                    <p className="font-medium">License is EXPIRED. Driver is blocked from trip assignments.</p>
+                  </div>
+                )}
+                {(() => {
+                  const daysToExpiry = d.license_expiry_date
+                    ? Math.ceil((new Date(d.license_expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  const isExpiringSoon = daysToExpiry !== null && daysToExpiry > 0 && daysToExpiry <= 30;
+                  return isExpiringSoon ? (
+                    <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-xl flex items-start gap-2 border border-amber-250">
+                      <span className="material-symbols-outlined text-base text-amber-700 shrink-0">alarm</span>
+                      <p className="font-medium">License expiring in {daysToExpiry} days. Please renew soon.</p>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Active Trip Current Status Banner */}
+                {d.status === 'On Trip' && d.active_trip && (
+                  <div className="p-3 bg-blue-50 text-blue-700 text-xs rounded-xl flex items-start gap-2 border border-blue-200">
+                    <span className="material-symbols-outlined text-base text-blue-600 shrink-0">navigation</span>
+                    <p className="font-medium">En-route: <strong>{d.active_trip.name}</strong> ({d.active_trip.source} → {d.active_trip.destination})</p>
+                  </div>
+                )}
+
                 {/* Warning Alert if Suspended */}
                 {d.status === 'Suspended' && (
                   <div className="p-3 bg-error-container text-on-error-container text-xs rounded-xl flex items-start gap-2 border border-error/15">
@@ -371,27 +443,91 @@ export default function Drivers() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Driver Photo URL</label>
-                  <input
-                    type="url"
-                    value={formData.avatar_url}
-                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                    placeholder="https://example.com/photo.jpg"
-                    className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                  />
+                <div className="space-y-1.5 col-span-2">
+                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Driver Photo</label>
+                  <div className="flex items-center gap-4 bg-surface border border-outline-variant rounded-xl p-3">
+                    {formData.avatar_url ? (
+                      <img src={formData.avatar_url} alt="Preview" className="w-16 h-16 rounded-full object-cover border border-outline-variant" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-outline">
+                        <span className="material-symbols-outlined text-3xl">person</span>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/60 text-on-surface-variant hover:text-on-surface text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5">
+                          {uploadingPhoto ? (
+                            <>
+                              <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-sm">upload</span>
+                              Upload Photo
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPhoto}
+                            onChange={handlePhotoUpload}
+                          />
+                        </label>
+                        {formData.avatar_url && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, avatar_url: '' })}
+                            className="text-xs font-bold text-tertiary hover:underline px-2 py-1 cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-on-surface-variant font-medium">Supports JPEG, PNG up to 5MB</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">CDL License Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.license_number}
-                    onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
-                    placeholder="DL-14202600102"
-                    className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      value={formData.license_number}
+                      onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
+                      placeholder="DL-14202600102"
+                      className="flex-1 min-w-0 bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                    />
+                    <label className="bg-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-primary/10 hover:bg-primary-container hover:text-on-primary-container transition-all flex items-center gap-1.5 cursor-pointer shrink-0">
+                      {extractingLicense ? (
+                        <>
+                          <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Extracting...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm">document_scanner</span>
+                          Scan License
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        disabled={extractingLicense}
+                        onChange={handleLicenseUpload}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

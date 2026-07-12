@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1085.0",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.110.2",
     "axios": "^1.18.1",
     "cors": "^2.8.6",
@@ -19,6 +20,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "multer": "^2.2.0",
+    "tesseract.js": "^7.0.0",
     "ws": "^8.21.0"
   },
   "devDependencies": {
