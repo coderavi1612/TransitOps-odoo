@@ -51,10 +51,11 @@ router.post('/signup', async (req, res) => {
       if (roleError) console.error('Role insert error:', roleError.message);
     }
 
-    res.json({
+    res.status(201).json({
       user: signUpData.user,
       session: signUpData.session,
       profile: { full_name, email, phone, role },
+      roles: role ? [role] : [],
     });
   } catch (err) {
     console.error('Signup error:', err);
@@ -160,8 +161,7 @@ router.post('/assign-role', authenticate, requireRole('admin'), async (req, res)
   }
 });
 
-// POST /api/auth/revoke-role — Admin removes role from user
-router.post('/revoke-role', authenticate, requireRole('admin'), async (req, res) => {
+async function removeUserRole(req, res) {
   const { user_id, role } = req.body;
 
   if (!user_id || !role) {
@@ -183,7 +183,13 @@ router.post('/revoke-role', authenticate, requireRole('admin'), async (req, res)
     console.error('Revoke role error:', err);
     res.status(500).json({ error: 'Failed to revoke role' });
   }
-});
+}
+
+// POST /api/auth/revoke-role — Backward-compatible role removal
+router.post('/revoke-role', authenticate, requireRole('admin'), removeUserRole);
+
+// DELETE /api/auth/remove-role — Documented role removal endpoint
+router.delete('/remove-role', authenticate, requireRole('admin'), removeUserRole);
 
 // POST /api/auth/test-signup — Dev only: create pre-confirmed user
 router.post('/test-signup', async (req, res) => {
@@ -237,10 +243,11 @@ router.post('/test-signup', async (req, res) => {
 
     if (signInErr) return res.status(400).json({ error: signInErr.message });
 
-    res.json({
+    res.status(201).json({
       user: userData.user,
       session: sessionData.session,
       profile: { full_name, email, phone, role },
+      roles: role ? [role] : [],
     });
   } catch (err) {
     console.error('Test signup error:', err);

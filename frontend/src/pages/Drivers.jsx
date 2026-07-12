@@ -86,7 +86,7 @@ export default function Drivers() {
 
     const body = {
       ...formData,
-      region_id: formData.region_id ? parseInt(formData.region_id) : null,
+      region_id: formData.region_id || null,
       safety_score: parseFloat(formData.safety_score),
     };
 
@@ -113,21 +113,17 @@ export default function Drivers() {
     }
   };
 
-  // Categories mock filters mapping
-  const categories = ['All Drivers', 'Category A', 'Category B', 'HGV Specialist'];
+  const categories = ['All Drivers', 'Available', 'On Trip', 'Off Duty', 'Suspended'];
 
   const filteredDrivers = drivers.filter((d) => {
     const matchesSearch =
       d.name?.toLowerCase().includes(search.toLowerCase()) ||
       d.license_number?.toLowerCase().includes(search.toLowerCase());
 
-    // Mock category filters based on license ranges for showcase
     const matchesCategory =
       filterCategory === 'All Drivers' ||
       filterCategory === 'All' ||
-      (filterCategory === 'Category A' && d.license_number.startsWith('A')) ||
-      (filterCategory === 'Category B' && d.license_number.startsWith('B')) ||
-      (filterCategory === 'HGV Specialist' && d.safety_score > 90);
+      d.status === filterCategory;
 
     return matchesSearch && matchesCategory;
   });
@@ -278,12 +274,14 @@ export default function Drivers() {
 
               {/* Action Buttons */}
               <div className="flex gap-2 border-t border-outline-variant/40 pt-4">
-                <button
-                  onClick={() => handleOpenEdit(d)}
-                  className="flex-1 border border-outline hover:border-primary text-on-surface-variant hover:text-primary font-bold py-2 rounded-xl text-xs transition-all cursor-pointer"
-                >
-                  Edit Profile
-                </button>
+                {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+                  <button
+                    onClick={() => handleOpenEdit(d)}
+                    className="flex-1 border border-outline hover:border-primary text-on-surface-variant hover:text-primary font-bold py-2 rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Edit Profile
+                  </button>
+                )}
                 {hasRole(['fleet_manager', 'admin']) && (
                   <button
                     onClick={() => handleDelete(d.id)}

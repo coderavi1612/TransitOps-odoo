@@ -5,6 +5,40 @@ const { requireRole, requirePermission } = require('../../shared/middleware/rbac
 
 const router = express.Router();
 
+async function getMaintenanceTypeName(maintenance_type_id, fallback) {
+  if (!maintenance_type_id) return fallback;
+  const { data } = await supabaseAdmin
+    .from('transit_ops_maintenance_type')
+    .select('*')
+    .eq('id', maintenance_type_id)
+    .single();
+  return data?.name || fallback || String(maintenance_type_id);
+}
+
+async function attachMaintenanceLookups(logs) {
+  const rows = Array.isArray(logs) ? logs : [logs];
+  const vehicleIds = [...new Set(rows.map((log) => log.vehicle_id).filter(Boolean))];
+  const typeIds = [...new Set(rows.map((log) => log.maintenance_type_id).filter(Boolean))];
+
+  const [vehiclesRes, typesRes] = await Promise.all([
+    vehicleIds.length ? supabaseAdmin.from('vehicles').select('*').in('id', vehicleIds) : { data: [] },
+    typeIds.length ? supabaseAdmin.from('transit_ops_maintenance_type').select('*').in('id', typeIds) : { data: [] },
+  ]);
+
+  const vehiclesById = new Map((vehiclesRes.data || []).map((vehicle) => [String(vehicle.id), vehicle]));
+  const typesById = new Map((typesRes.data || []).map((type) => [String(type.id), type]));
+
+  const enriched = rows.map((log) => ({
+    ...log,
+    transit_ops_vehicle: log.vehicle_id ? vehiclesById.get(String(log.vehicle_id)) || null : null,
+    transit_ops_maintenance_type: log.maintenance_type_id
+      ? typesById.get(String(log.maintenance_type_id)) || { name: log.maintenance_type }
+      : { name: log.maintenance_type },
+  }));
+
+  return Array.isArray(logs) ? enriched : enriched[0];
+}
+
 // GET /api/maintenance — List all maintenance logs
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -27,7 +61,8 @@ router.get('/', authenticate, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch maintenance logs' });
     }
 
-    res.json({ maintenance_logs: data, count: data.length });
+    const logs = await attachMaintenanceLookups(data || []);
+    res.json({ maintenance_logs: logs, count: logs.length });
   } catch (err) {
     console.error('List maintenance exception:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -47,7 +82,7 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Maintenance log not found' });
     }
 
-    res.json(data);
+    res.json(await attachMaintenanceLookups(data));
   } catch (err) {
     console.error('Get maintenance error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -61,9 +96,9 @@ router.post(
   requireRole('fleet_manager', 'safety_officer', 'admin'),
   requirePermission('maintenance', 'create'),
   async (req, res) => {
-    const { vehicle_id, maintenance_type, scheduled_date, notes } = req.body;
+    const { vehicle_id, maintenance_type, maintenance_type_id, scheduled_date, notes, cost } = req.body;
 
-    if (!vehicle_id || !maintenance_type) {
+    if (!vehicle_id || (!maintenance_type && !maintenance_type_id)) {
       return res.status(400).json({ error: 'vehicle_id and maintenance_type are required' });
     }
 
@@ -80,13 +115,16 @@ router.post(
       }
 
       // Create maintenance log in Scheduled state
+      const resolvedMaintenanceType = await getMaintenanceTypeName(maintenance_type_id, maintenance_type);
       const { data: log, error: logError } = await supabaseAdmin
         .from('maintenance_logs')
         .insert({
           vehicle_id,
-          maintenance_type,
+          maintenance_type: resolvedMaintenanceType,
+          maintenance_type_id: maintenance_type_id || null,
           scheduled_date,
           notes,
+          cost: cost || 0,
           state: 'Scheduled',
         })
         .select()
@@ -97,7 +135,7 @@ router.post(
         return res.status(400).json({ error: logError.message });
       }
 
-      res.status(201).json(log);
+      res.status(201).json(await attachMaintenanceLookups(log));
     } catch (err) {
       console.error('Create maintenance exception:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -184,7 +222,7 @@ router.post(
         .update({
           state: 'Closed',
           close_date: closeDate,
-          cost: cost || 0,
+          cost: cost !== undefined ? cost : log.cost,
           odometer,
         })
         .eq('id', log.id);
@@ -220,7 +258,7 @@ router.put(
   requireRole('fleet_manager', 'safety_officer', 'admin'),
   requirePermission('maintenance', 'update'),
   async (req, res) => {
-    const { maintenance_type, scheduled_date, notes } = req.body;
+    const { maintenance_type, maintenance_type_id, scheduled_date, notes, cost } = req.body;
 
     try {
       const { data: log, error: logError } = await supabaseAdmin
@@ -238,12 +276,18 @@ router.put(
         return res.status(400).json({ error: 'Can only update maintenance in Scheduled state' });
       }
 
+      const resolvedMaintenanceType = await getMaintenanceTypeName(
+        maintenance_type_id,
+        maintenance_type || log.maintenance_type
+      );
       const { data: updated, error: updateError } = await supabaseAdmin
         .from('maintenance_logs')
         .update({
-          maintenance_type,
+          maintenance_type: resolvedMaintenanceType,
+          maintenance_type_id: maintenance_type_id !== undefined ? maintenance_type_id : log.maintenance_type_id,
           scheduled_date,
           notes,
+          cost: cost !== undefined ? cost : log.cost,
         })
         .eq('id', req.params.id)
         .select()
@@ -253,7 +297,7 @@ router.put(
         return res.status(400).json({ error: updateError.message });
       }
 
-      res.json(updated);
+      res.json(await attachMaintenanceLookups(updated));
     } catch (err) {
       console.error('Update maintenance exception:', err);
       res.status(500).json({ error: 'Internal server error' });

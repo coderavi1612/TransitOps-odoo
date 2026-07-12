@@ -8,32 +8,7 @@ export function AuthProvider({ children }) {
   const [roles, setRoles] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [alerts, setAlerts] = useState([
-    {
-      id: 1,
-      type: 'Route Deviation',
-      time: '2m ago',
-      desc: 'LOG7614390 has exited the planned delivery corridor in Sector 7G.',
-      icon: 'warning',
-      color: 'text-tertiary bg-tertiary-fixed',
-    },
-    {
-      id: 2,
-      type: 'Service Required',
-      time: '15m ago',
-      desc: 'Brake sensor warning reported on Vehicle ID #042 during morning inspection.',
-      icon: 'build',
-      color: 'text-primary bg-primary-fixed',
-    },
-    {
-      id: 3,
-      type: 'Delayed Delivery',
-      time: '1h ago',
-      desc: "Traffic congestion on Highway 405 affecting Emily Carter's schedule.",
-      icon: 'timer',
-      color: 'text-secondary bg-secondary-fixed',
-    },
-  ]);
+  const [alerts, setAlerts] = useState([]);
 
   // Checks current session using token from localStorage
   const checkSession = async () => {
@@ -42,16 +17,6 @@ export function AuthProvider({ children }) {
       setUser(null);
       setRoles([]);
       setProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    // Dummy bypass session handling
-    if (token.startsWith('dummy_token')) {
-      const email = token === 'dummy_token_admin_transitops' ? 'admin@transitops.com' : 'operator@transitops.com';
-      setUser({ id: 'dummy-id', email });
-      setRoles(['admin', 'fleet_manager']);
-      setProfile({ full_name: 'Administrator', avatar_url: '' });
       setLoading(false);
       return;
     }
@@ -80,17 +45,6 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      // Local dummy bypass credentials check
-      if (email === 'admin@transitops.com' && password === 'admin') {
-        const dummyToken = 'dummy_token_admin_transitops';
-        localStorage.setItem('transitops_token', dummyToken);
-        setUser({ id: 'dummy-admin-id', email: 'admin@transitops.com' });
-        setRoles(['admin', 'fleet_manager']);
-        setProfile({ full_name: 'Administrator', avatar_url: '' });
-        setLoading(false);
-        return { user: { id: 'dummy-admin-id' } };
-      }
-
       const data = await api.post('/api/auth/login', { email, password });
       if (data?.session?.access_token) {
         localStorage.setItem('transitops_token', data.session.access_token);
@@ -100,15 +54,12 @@ export function AuthProvider({ children }) {
         throw new Error('No access token received');
       }
     } catch (err) {
-      // Fallback dev bypass to always allow logging in if API fails
-      console.warn('Backend login failed, fallback to dummy session:', err.message);
-      const dummyToken = `dummy_token_${email.replace(/[^a-zA-Z0-9]/g, '')}`;
-      localStorage.setItem('transitops_token', dummyToken);
-      setUser({ id: 'dummy-bypass-id', email });
-      setRoles(['admin', 'fleet_manager']);
-      setProfile({ full_name: email.split('@')[0].toUpperCase(), avatar_url: '' });
+      localStorage.removeItem('transitops_token');
+      setUser(null);
+      setRoles([]);
+      setProfile(null);
       setLoading(false);
-      return { user: { id: 'dummy-bypass-id' } };
+      throw err;
     }
   };
 
@@ -128,14 +79,12 @@ export function AuthProvider({ children }) {
       }
       throw new Error('No access token received');
     } catch (err) {
-      console.warn('Backend signup failed, fallback to local dummy session:', err.message);
-      const dummyToken = `dummy_token_signup_${email.replace(/[^a-zA-Z0-9]/g, '')}`;
-      localStorage.setItem('transitops_token', dummyToken);
-      setUser({ id: 'dummy-bypass-id', email });
-      setRoles([role || 'fleet_manager']);
-      setProfile({ full_name: fullName || email.split('@')[0], avatar_url: '' });
+      localStorage.removeItem('transitops_token');
+      setUser(null);
+      setRoles([]);
+      setProfile(null);
       setLoading(false);
-      return { user: { id: 'dummy-bypass-id' } };
+      throw err;
     }
   };
 
@@ -143,7 +92,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('transitops_token');
-      if (token && !token.startsWith('dummy_token')) {
+      if (token) {
         await api.post('/api/auth/logout');
       }
     } catch (err) {

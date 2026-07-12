@@ -101,8 +101,10 @@ export default function Vehicles() {
 
     const body = {
       ...formData,
-      vehicle_type_id: parseInt(formData.vehicle_type_id),
-      region_id: formData.region_id ? parseInt(formData.region_id) : null,
+      vehicle_model: formData.vehicle_model || formData.vehicle_name,
+      vehicle_name: formData.vehicle_name || formData.vehicle_model,
+      vehicle_type_id: formData.vehicle_type_id || null,
+      region_id: formData.region_id || null,
       capacity: parseFloat(formData.capacity),
       odometer: parseFloat(formData.odometer),
       acquisition_cost: parseFloat(formData.acquisition_cost),
@@ -149,9 +151,9 @@ export default function Vehicles() {
       v.vehicle_name?.toLowerCase().includes(search.toLowerCase()) ||
       v.vehicle_model?.toLowerCase().includes(search.toLowerCase());
       
-    const matchesRegion = filterRegion === 'All' || v.region_id === parseInt(filterRegion);
+    const matchesRegion = filterRegion === 'All' || String(v.region_id) === String(filterRegion);
     const matchesStatus = filterStatus === 'All' || v.status === filterStatus;
-    const matchesType = filterType === 'All' || v.vehicle_type_id === parseInt(filterType);
+    const matchesType = filterType === 'All' || String(v.vehicle_type_id) === String(filterType);
 
     return matchesSearch && matchesRegion && matchesStatus && matchesType;
   });
@@ -395,8 +397,8 @@ export default function Vehicles() {
                   <input
                     type="text"
                     required
-                    value={formData.vehicle_name}
-                    onChange={(e) => setFormData({ ...formData, vehicle_name: e.target.value })}
+                    value={formData.vehicle_model}
+                    onChange={(e) => setFormData({ ...formData, vehicle_model: e.target.value, vehicle_name: e.target.value })}
                     placeholder="Prime G2"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />

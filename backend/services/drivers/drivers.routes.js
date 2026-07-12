@@ -5,6 +5,20 @@ const { requireRole, requirePermission } = require('../../shared/middleware/rbac
 
 const router = express.Router();
 
+async function attachDriverLookups(drivers) {
+  const rows = Array.isArray(drivers) ? drivers : [drivers];
+  const regionIds = [...new Set(rows.map((driver) => driver.region_id).filter(Boolean))];
+  const regionsRes = regionIds.length
+    ? await supabaseAdmin.from('transit_ops_region').select('*').in('id', regionIds)
+    : { data: [] };
+  const regionsById = new Map((regionsRes.data || []).map((region) => [String(region.id), region]));
+  const enriched = rows.map((driver) => ({
+    ...driver,
+    transit_ops_region: driver.region_id ? regionsById.get(String(driver.region_id)) || null : null,
+  }));
+  return Array.isArray(drivers) ? enriched : enriched[0];
+}
+
 // GET /api/drivers — List all drivers
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -22,7 +36,8 @@ router.get('/', authenticate, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch drivers' });
     }
 
-    res.json({ drivers: data || [], count: (data || []).length });
+    const drivers = await attachDriverLookups(data || []);
+    res.json({ drivers, count: drivers.length });
   } catch (err) {
     console.error('List drivers exception:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -42,7 +57,7 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Driver not found' });
     }
 
-    res.json(data);
+    res.json(await attachDriverLookups(data));
   } catch (err) {
     console.error('Get driver error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -56,7 +71,17 @@ router.post(
   requireRole('safety_officer', 'fleet_manager', 'admin'),
   requirePermission('drivers', 'create'),
   async (req, res) => {
-    const { name, phone, email, license_number, license_expiry_date } = req.body;
+    const {
+      name,
+      phone,
+      email,
+      license_number,
+      license_expiry_date,
+      status,
+      safety_score,
+      region_id,
+      avatar_url,
+    } = req.body;
 
     if (!name || !phone || !license_number || !license_expiry_date) {
       return res.status(400).json({ error: 'Missing required fields: name, phone, license_number, license_expiry_date' });
@@ -94,8 +119,10 @@ router.post(
           email: email || '',
           license_number,
           license_expiry_date,
-          status: 'Available',
-          safety_score: 100,
+          status: status || 'Available',
+          safety_score: safety_score !== undefined ? safety_score : 100,
+          region_id: region_id || null,
+          avatar_url: avatar_url || null,
         })
         .select()
         .single();
@@ -112,7 +139,7 @@ router.post(
         });
       }
 
-      res.status(201).json(driver);
+      res.status(201).json(await attachDriverLookups(driver));
     } catch (err) {
       console.error('Create driver exception:', err.message);
       res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -127,7 +154,7 @@ router.put(
   requireRole('safety_officer', 'fleet_manager', 'admin'),
   requirePermission('drivers', 'update'),
   async (req, res) => {
-    const { name, phone, email, status, safety_score } = req.body;
+    const { name, phone, email, license_number, license_expiry_date, status, safety_score, region_id, avatar_url } = req.body;
 
     try {
       const { data: driver, error: driverError } = await supabaseAdmin
@@ -146,8 +173,12 @@ router.put(
           name: name || driver.name,
           phone: phone || driver.phone,
           email: email !== undefined ? email : driver.email,
+          license_number: license_number || driver.license_number,
+          license_expiry_date: license_expiry_date || driver.license_expiry_date,
           status: status || driver.status,
           safety_score: safety_score !== undefined ? safety_score : driver.safety_score,
+          region_id: region_id !== undefined ? region_id : driver.region_id,
+          avatar_url: avatar_url !== undefined ? avatar_url : driver.avatar_url,
         })
         .eq('id', req.params.id)
         .select()
@@ -157,7 +188,7 @@ router.put(
         return res.status(400).json({ error: updateError.message });
       }
 
-      res.json(updated);
+      res.json(await attachDriverLookups(updated));
     } catch (err) {
       console.error('Update driver exception:', err);
       res.status(500).json({ error: 'Internal server error' });

@@ -110,9 +110,13 @@ export default function Login() {
               <div className="mb-6 p-4 rounded-xl bg-primary-fixed/30 text-on-primary-fixed-variant text-xs font-semibold border border-primary/20 flex items-start gap-2.5">
                 <span className="material-symbols-outlined text-base text-primary shrink-0 mt-0.5">info</span>
                 <div>
-                  <p className="font-bold">Demo Operator Credentials</p>
-                  <p className="font-medium mt-0.5 opacity-90">Email: <span className="font-mono text-primary font-bold select-all">admin@transitops.com</span></p>
-                  <p className="font-medium opacity-90">Password: <span className="font-mono text-primary font-bold select-all">admin</span></p>
+                  <p className="font-bold">Development Admin Credentials</p>
+                  <p className="font-medium mt-0.5 opacity-90">
+                    Email: <span className="font-mono text-primary font-bold select-all">admin@transitops.com</span>
+                  </p>
+                  <p className="font-medium opacity-90">
+                    Password: <span className="font-mono text-primary font-bold select-all">admin123</span>
+                  </p>
                 </div>
               </div>
             )}

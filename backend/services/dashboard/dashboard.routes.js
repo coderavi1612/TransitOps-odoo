@@ -5,9 +5,57 @@ const { requireRole, requirePermission } = require('../../shared/middleware/rbac
 
 const router = express.Router();
 
+function escapePdfText(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+function createSimplePdf(title, lines) {
+  const safeLines = [title, '', ...lines].map(escapePdfText);
+  const content = [
+    'BT',
+    '/F1 22 Tf',
+    '50 770 Td',
+    `(${safeLines[0]}) Tj`,
+    '/F1 11 Tf',
+    '0 -34 Td',
+    ...safeLines.slice(1).map((line) => `0 -18 Td (${line}) Tj`),
+    'ET',
+  ].join('\n');
+
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}\nendstream`,
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+
+  const xrefOffset = Buffer.byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+  return Buffer.from(pdf);
+}
+
 // GET /api/dashboard/kpis
 router.get('/kpis', authenticate, async (req, res) => {
   try {
+    const { region, status, type } = req.query;
     const [vehiclesRes, driversRes, tripsRes, maintenanceRes, fuelRes, expensesRes] = await Promise.all([
       supabase.from('vehicles').select('*'),
       supabase.from('drivers').select('*'),
@@ -24,12 +72,28 @@ router.get('/kpis', authenticate, async (req, res) => {
     if (fuelRes.error) throw fuelRes.error;
     if (expensesRes.error) throw expensesRes.error;
 
-    const vehicles = vehiclesRes.data || [];
-    const drivers = driversRes.data || [];
-    const trips = tripsRes.data || [];
+    let vehicles = vehiclesRes.data || [];
+    let drivers = driversRes.data || [];
+    let trips = tripsRes.data || [];
     const maintenanceLogs = maintenanceRes.data || [];
     const fuelLogs = fuelRes.data || [];
     const expenses = expensesRes.data || [];
+
+    if (region && region !== 'All') {
+      vehicles = vehicles.filter((vehicle) => String(vehicle.region_id) === String(region));
+      drivers = drivers.filter((driver) => String(driver.region_id) === String(region));
+      trips = trips.filter((trip) => String(trip.region_id) === String(region));
+    }
+
+    if (status && status !== 'All') {
+      vehicles = vehicles.filter((vehicle) => vehicle.status === status);
+    }
+
+    if (type && type !== 'All') {
+      vehicles = vehicles.filter((vehicle) => String(vehicle.vehicle_type_id) === String(type));
+      const vehicleIds = new Set(vehicles.map((vehicle) => String(vehicle.id)));
+      trips = trips.filter((trip) => vehicleIds.has(String(trip.vehicle_id)));
+    }
 
     // Calculations
     const activeVehicles = vehicles.filter(v => v.status !== 'Retired');
@@ -112,6 +176,70 @@ router.get('/kpis', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/dashboard/vehicle-performance
+router.get('/vehicle-performance', authenticate, async (req, res) => {
+  try {
+    const [vehiclesRes, tripsRes, maintenanceRes, fuelRes] = await Promise.all([
+      supabase.from('vehicles').select('*'),
+      supabase.from('trips').select('*'),
+      supabase.from('maintenance_logs').select('*'),
+      supabase.from('fuel_logs').select('*'),
+    ]);
+
+    if (vehiclesRes.error) throw vehiclesRes.error;
+    if (tripsRes.error) throw tripsRes.error;
+    if (maintenanceRes.error) throw maintenanceRes.error;
+    if (fuelRes.error) throw fuelRes.error;
+
+    const trips = tripsRes.data || [];
+    const maintenanceLogs = maintenanceRes.data || [];
+    const fuelLogs = fuelRes.data || [];
+
+    const vehicles = (vehiclesRes.data || []).map((vehicle) => {
+      const vehicleTrips = trips.filter((trip) => String(trip.vehicle_id) === String(vehicle.id));
+      const completedTrips = vehicleTrips.filter((trip) => trip.state === 'Completed');
+      const dispatchedTrips = vehicleTrips.filter((trip) => trip.state === 'Dispatched');
+      const vehicleFuel = fuelLogs.filter((log) => String(log.vehicle_id) === String(vehicle.id));
+      const vehicleMaintenance = maintenanceLogs.filter((log) => String(log.vehicle_id) === String(vehicle.id));
+
+      const totalDistance = completedTrips.reduce((sum, trip) => sum + Number(trip.actual_distance || 0), 0);
+      const totalFuelConsumed = completedTrips.reduce((sum, trip) => sum + Number(trip.fuel_consumed || 0), 0);
+      const loggedEfficiency = vehicleFuel
+        .filter((log) => Number(log.fuel_efficiency) > 0)
+        .map((log) => Number(log.fuel_efficiency));
+      const fuelEfficiency = totalFuelConsumed > 0
+        ? totalDistance / totalFuelConsumed
+        : loggedEfficiency.length
+          ? loggedEfficiency.reduce((sum, value) => sum + value, 0) / loggedEfficiency.length
+          : 0;
+
+      const utilizationRate = vehicleTrips.length > 0
+        ? ((completedTrips.length + dispatchedTrips.length) / vehicleTrips.length) * 100
+        : vehicle.status === 'On Trip'
+          ? 100
+          : 0;
+
+      const fuelCost = vehicleFuel.reduce((sum, log) => sum + Number(log.cost || 0), 0);
+      const maintenanceCost = vehicleMaintenance.reduce((sum, log) => sum + Number(log.cost || 0), 0);
+      const revenue = totalDistance * 1.5;
+      const acquisitionCost = Number(vehicle.acquisition_cost || 0) || 1;
+      const roiContribution = (revenue - fuelCost - maintenanceCost) / acquisitionCost;
+
+      return {
+        ...vehicle,
+        fuel_efficiency: Number(fuelEfficiency.toFixed(2)),
+        utilization_rate: Number(utilizationRate.toFixed(2)),
+        roi_contribution: Number(roiContribution.toFixed(4)),
+      };
+    });
+
+    res.json({ vehicles, count: vehicles.length });
+  } catch (err) {
+    console.error('Vehicle performance error:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
 // GET /api/dashboard/analytics
 router.get('/analytics', authenticate, async (req, res) => {
   const { date_from, date_to, status } = req.query;
@@ -142,6 +270,77 @@ router.get('/analytics', authenticate, async (req, res) => {
     });
   } catch (err) {
     console.error('Analytics query error:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+// GET /api/dashboard/reports/strategy/pdf
+router.get('/reports/strategy/pdf', authenticate, requireRole('admin', 'fleet_manager', 'financial_analyst', 'safety_officer'), async (req, res) => {
+  try {
+    const [vehiclesRes, driversRes, tripsRes, maintenanceRes, fuelRes, expensesRes] = await Promise.all([
+      supabase.from('vehicles').select('*'),
+      supabase.from('drivers').select('*'),
+      supabase.from('trips').select('*'),
+      supabase.from('maintenance_logs').select('*'),
+      supabase.from('fuel_logs').select('*'),
+      supabase.from('expenses').select('*'),
+    ]);
+
+    if (vehiclesRes.error) throw vehiclesRes.error;
+    if (driversRes.error) throw driversRes.error;
+    if (tripsRes.error) throw tripsRes.error;
+    if (maintenanceRes.error) throw maintenanceRes.error;
+    if (fuelRes.error) throw fuelRes.error;
+    if (expensesRes.error) throw expensesRes.error;
+
+    const vehicles = vehiclesRes.data || [];
+    const drivers = driversRes.data || [];
+    const trips = tripsRes.data || [];
+    const maintenanceLogs = maintenanceRes.data || [];
+    const fuelLogs = fuelRes.data || [];
+    const expenses = expensesRes.data || [];
+    const completedTrips = trips.filter((trip) => trip.state === 'Completed');
+    const activeVehicles = vehicles.filter((vehicle) => vehicle.status !== 'Retired');
+    const vehiclesOnTrip = vehicles.filter((vehicle) => vehicle.status === 'On Trip').length;
+    const fleetUtilization = activeVehicles.length ? ((vehiclesOnTrip / activeVehicles.length) * 100).toFixed(1) : '0.0';
+    const totalDistance = completedTrips.reduce((sum, trip) => sum + Number(trip.actual_distance || 0), 0);
+    const totalFuelConsumed = completedTrips.reduce((sum, trip) => sum + Number(trip.fuel_consumed || 0), 0);
+    const fuelEfficiency = totalFuelConsumed > 0 ? (totalDistance / totalFuelConsumed).toFixed(1) : '0.0';
+    const operationalCost = [
+      ...fuelLogs.map((log) => Number(log.cost || 0)),
+      ...maintenanceLogs.map((log) => Number(log.cost || 0)),
+      ...expenses.map((expense) => Number(expense.amount || 0)),
+    ].reduce((sum, value) => sum + value, 0);
+    const expiringLicenses = drivers.filter((driver) => {
+      if (!driver.license_expiry_date) return false;
+      const days = (new Date(driver.license_expiry_date) - new Date()) / (1000 * 60 * 60 * 24);
+      return days <= 30;
+    }).length;
+
+    const generatedAt = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const pdf = createSimplePdf('TransitOps Strategy Report', [
+      `Generated: ${generatedAt}`,
+      `Active Vehicles: ${activeVehicles.length}`,
+      `Available Vehicles: ${vehicles.filter((vehicle) => vehicle.status === 'Available').length}`,
+      `Vehicles In Maintenance: ${vehicles.filter((vehicle) => vehicle.status === 'In Shop').length}`,
+      `Drivers Available: ${drivers.filter((driver) => driver.status === 'Available').length}`,
+      `Active Trips: ${trips.filter((trip) => trip.state === 'Dispatched').length}`,
+      `Completed Trips: ${completedTrips.length}`,
+      `Fleet Utilization: ${fleetUtilization}%`,
+      `Fuel Efficiency: ${fuelEfficiency} km/L`,
+      `Operational Cost: INR ${operationalCost.toFixed(2)}`,
+      `Maintenance Due: ${maintenanceLogs.filter((log) => log.state === 'Scheduled').length}`,
+      `Licenses Expiring Within 30 Days: ${expiringLicenses}`,
+      '',
+      'Summary:',
+      'This report summarizes live fleet, trip, fuel, maintenance, expense, and driver safety data.',
+    ]);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="transitops_strategy_report.pdf"');
+    res.status(200).send(pdf);
+  } catch (err) {
+    console.error('Strategy PDF generation error:', err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
@@ -177,6 +376,96 @@ router.get('/reports/:reportName/export', authenticate, requireRole('admin', 'fl
     };
 
     switch (reportName.toLowerCase()) {
+      case 'audit':
+      case 'audit-dataset':
+      case 'audit_dataset': {
+        headers = ['Record Type', 'Record ID', 'Reference', 'Status', 'Date', 'Vehicle ID', 'Driver ID', 'Amount', 'Details'];
+        const [vehiclesRes, driversRes, tripsRes, maintenanceRes, fuelRes, expensesRes] = await Promise.all([
+          supabase.from('vehicles').select('*'),
+          supabase.from('drivers').select('*'),
+          supabase.from('trips').select('*'),
+          supabase.from('maintenance_logs').select('*'),
+          supabase.from('fuel_logs').select('*'),
+          supabase.from('expenses').select('*'),
+        ]);
+
+        if (vehiclesRes.error) throw vehiclesRes.error;
+        if (driversRes.error) throw driversRes.error;
+        if (tripsRes.error) throw tripsRes.error;
+        if (maintenanceRes.error) throw maintenanceRes.error;
+        if (fuelRes.error) throw fuelRes.error;
+        if (expensesRes.error) throw expensesRes.error;
+
+        rows = [
+          ...vehiclesRes.data.map((vehicle) => [
+            'Vehicle',
+            vehicle.id,
+            vehicle.registration_number,
+            vehicle.status,
+            vehicle.created_at || '',
+            vehicle.id,
+            '',
+            vehicle.acquisition_cost || '',
+            `${vehicle.name || ''} ${vehicle.vehicle_model || ''}`.trim(),
+          ]),
+          ...driversRes.data.map((driver) => [
+            'Driver',
+            driver.id,
+            driver.license_number,
+            driver.status,
+            driver.license_expiry_date || '',
+            '',
+            driver.id,
+            '',
+            `${driver.name || ''} safety score ${driver.safety_score || 0}`.trim(),
+          ]),
+          ...tripsRes.data.map((trip) => [
+            'Trip',
+            trip.id,
+            trip.name,
+            trip.state,
+            trip.planned_date || trip.created_at || '',
+            trip.vehicle_id,
+            trip.driver_id,
+            '',
+            `${trip.source || ''} to ${trip.destination || ''}`.trim(),
+          ]),
+          ...maintenanceRes.data.map((log) => [
+            'Maintenance',
+            log.id,
+            log.maintenance_type,
+            log.state,
+            log.scheduled_date || log.created_at || '',
+            log.vehicle_id,
+            '',
+            log.cost || '',
+            log.notes || '',
+          ]),
+          ...fuelRes.data.map((log) => [
+            'Fuel',
+            log.id,
+            `${log.litres} L`,
+            '',
+            log.date || log.created_at || '',
+            log.vehicle_id,
+            '',
+            log.cost || '',
+            `Odometer ${log.odometer || ''}; efficiency ${log.fuel_efficiency || ''}`.trim(),
+          ]),
+          ...expensesRes.data.map((expense) => [
+            'Expense',
+            expense.id,
+            expense.expense_category,
+            '',
+            expense.date || expense.created_at || '',
+            expense.vehicle_id,
+            '',
+            expense.amount || '',
+            expense.notes || '',
+          ]),
+        ];
+        break;
+      }
       case 'fleet-utilization':
       case 'fleet_utilization': {
         headers = ['Vehicle ID', 'Vehicle Name', 'Registration Number', 'Model', 'Manufacturer', 'Capacity', 'Odometer', 'Status', 'Is Utilized (On Trip)'];

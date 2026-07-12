@@ -5,6 +5,20 @@ const { requireRole, requirePermission } = require('../../shared/middleware/rbac
 
 const router = express.Router();
 
+async function attachFuelLookups(logs) {
+  const rows = Array.isArray(logs) ? logs : [logs];
+  const vehicleIds = [...new Set(rows.map((log) => log.vehicle_id).filter(Boolean))];
+  const vehiclesRes = vehicleIds.length
+    ? await supabaseAdmin.from('vehicles').select('*').in('id', vehicleIds)
+    : { data: [] };
+  const vehiclesById = new Map((vehiclesRes.data || []).map((vehicle) => [String(vehicle.id), vehicle]));
+  const enriched = rows.map((log) => ({
+    ...log,
+    transit_ops_vehicle: log.vehicle_id ? vehiclesById.get(String(log.vehicle_id)) || null : null,
+  }));
+  return Array.isArray(logs) ? enriched : enriched[0];
+}
+
 // GET /api/fuel — List all fuel logs
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -38,7 +52,8 @@ router.get('/', authenticate, async (req, res) => {
       avg_efficiency: data.filter((log) => log.fuel_efficiency).reduce((sum, log) => sum + log.fuel_efficiency, 0) / (data.filter((log) => log.fuel_efficiency).length || 1),
     };
 
-    res.json({ fuel_logs: data, count: data.length, totals });
+    const fuelLogs = await attachFuelLookups(data || []);
+    res.json({ fuel_logs: fuelLogs, count: fuelLogs.length, totals });
   } catch (err) {
     console.error('List fuel logs exception:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -58,7 +73,7 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Fuel log not found' });
     }
 
-    res.json(data);
+    res.json(await attachFuelLookups(data));
   } catch (err) {
     console.error('Get fuel log error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -72,7 +87,7 @@ router.post(
   requireRole('driver', 'fleet_manager', 'financial_analyst', 'admin'),
   requirePermission('fuel', 'create'),
   async (req, res) => {
-    const { vehicle_id, date, litres, cost, odometer } = req.body;
+    const { vehicle_id, date, litres, cost, odometer, location } = req.body;
 
     if (!vehicle_id || !date || !litres || !cost) {
       return res.status(400).json({ error: 'vehicle_id, date, litres, and cost are required' });
@@ -118,6 +133,7 @@ router.post(
           litres,
           cost,
           odometer,
+          location: location || null,
           fuel_efficiency,
         })
         .select()
@@ -133,7 +149,7 @@ router.post(
         await supabaseAdmin.from('vehicles').update({ odometer }).eq('id', vehicle_id);
       }
 
-      res.status(201).json(log);
+      res.status(201).json(await attachFuelLookups(log));
     } catch (err) {
       console.error('Create fuel log exception:', err);
       res.status(500).json({ error: 'Internal server error' });

@@ -13,6 +13,7 @@ const expenseRoutes = require('./services/expenses');
 const configRoutes = require('./services/config');
 const dashboardRoutes = require('./services/dashboard');
 const r2Routes = require('./services/r2');
+const documentRoutes = require('./services/documents');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/r2', r2Routes);
+app.use('/api/documents', documentRoutes);
 
 // 404
 app.use((req, res) => {
@@ -54,4 +56,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-

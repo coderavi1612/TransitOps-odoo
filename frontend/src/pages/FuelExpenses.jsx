@@ -73,7 +73,7 @@ export default function FuelExpenses() {
 
     const body = {
       ...fuelForm,
-      vehicle_id: parseInt(fuelForm.vehicle_id),
+      vehicle_id: fuelForm.vehicle_id,
       litres: parseFloat(fuelForm.litres),
       cost: parseFloat(fuelForm.cost),
       odometer: parseFloat(fuelForm.odometer),
@@ -98,8 +98,8 @@ export default function FuelExpenses() {
 
     const body = {
       ...expenseForm,
-      vehicle_id: parseInt(expenseForm.vehicle_id),
-      expense_category_id: parseInt(expenseForm.expense_category_id),
+      vehicle_id: expenseForm.vehicle_id,
+      expense_category_id: expenseForm.expense_category_id,
       amount: parseFloat(expenseForm.amount),
     };
 
@@ -176,8 +176,23 @@ export default function FuelExpenses() {
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   // Compute metrics
-  const totalExpenses = unifiedLogs.reduce((acc, curr) => acc + parseFloat(curr.amount || 0), 0);
-  const avgEfficiency = fuelLogs.filter(f => f.fuel_efficiency).reduce((acc, curr, _, arr) => acc + (curr.fuel_efficiency / arr.length), 0) || 14.2;
+  const vehicleCostBars = vehicles.map((vehicle) => {
+    const fuelCost = fuelLogs
+      .filter((log) => String(log.vehicle_id) === String(vehicle.id))
+      .reduce((sum, log) => sum + Number(log.cost || 0), 0);
+    const maintenanceCost = expenses
+      .filter((expense) =>
+        String(expense.vehicle_id) === String(vehicle.id) &&
+        expense.transit_ops_expense_category?.category_type === 'Maintenance'
+      )
+      .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    return {
+      label: vehicle.registration_number || vehicle.name,
+      fuel: fuelCost,
+      maint: maintenanceCost,
+    };
+  }).filter((bar) => bar.fuel > 0 || bar.maint > 0).slice(0, 6);
+  const maxVehicleCost = Math.max(...vehicleCostBars.map((bar) => bar.fuel + bar.maint), 1);
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left bg-surface/10">
@@ -228,7 +243,7 @@ export default function FuelExpenses() {
                   <select
                     value={fuelForm.vehicle_id}
                     onChange={(e) => {
-                      const v = vehicles.find(vh => vh.id === parseInt(e.target.value));
+                      const v = vehicles.find(vh => String(vh.id) === e.target.value);
                       setFuelForm({
                         ...fuelForm,
                         vehicle_id: e.target.value,
@@ -416,25 +431,19 @@ export default function FuelExpenses() {
 
           {/* Graphical Stacked Bars matching screenshot */}
           <div className="flex-1 flex items-end justify-around h-64 pt-6 border-b border-outline-variant/30">
-            {[
-              { label: 'TR 761', fuel: 65, maint: 20 },
-              { label: 'TR 883', fuel: 75, maint: 15 },
-              { label: 'VN 202', fuel: 45, maint: 25 },
-              { label: 'VN 901', fuel: 70, maint: 12 },
-              { label: 'CR 119', fuel: 35, maint: 30 },
-              { label: 'TR 004', fuel: 82, maint: 18 },
-            ].map((bar, index) => (
+            {(vehicleCostBars.length ? vehicleCostBars : [{ label: 'No data', fuel: 0, maint: 0 }]).map((bar, index) => {
+              const fuelHeight = (bar.fuel / maxVehicleCost) * 100;
+              const maintHeight = (bar.maint / maxVehicleCost) * 100;
+              return (
               <div key={index} className="flex flex-col items-center w-12 gap-2 h-full justify-end">
-                {/* Stacked bar cylinder */}
                 <div className="w-8 rounded-t-lg overflow-hidden flex flex-col justify-end h-full">
-                  {/* Maintenance block (brown) */}
-                  <div className="bg-[#8C3A32] transition-all hover:brightness-95 cursor-pointer" style={{ height: `${bar.maint}%` }} title={`Maint: ${bar.maint}%`} />
-                  {/* Fuel block (orange) */}
-                  <div className="bg-primary transition-all hover:brightness-95 cursor-pointer" style={{ height: `${bar.fuel}%` }} title={`Fuel: ${bar.fuel}%`} />
+                  <div className="bg-[#8C3A32] transition-all hover:brightness-95 cursor-pointer" style={{ height: `${maintHeight}%` }} title={`Maint: ₹${bar.maint.toLocaleString('en-IN')}`} />
+                  <div className="bg-primary transition-all hover:brightness-95 cursor-pointer" style={{ height: `${fuelHeight}%` }} title={`Fuel: ₹${bar.fuel.toLocaleString('en-IN')}`} />
                 </div>
                 <span className="text-[10px] font-bold text-on-surface-variant font-mono uppercase tracking-wider">{bar.label}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -517,7 +526,11 @@ export default function FuelExpenses() {
                           </button>
                           
                           <div className="absolute right-0 top-full mt-1 bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-lg z-20 py-1 hidden group-hover/menu:block w-28 text-left">
-                            {hasRole(['fleet_manager', 'financial_analyst', 'admin']) && (
+                            {(
+                              log.type === 'Fuel'
+                                ? hasRole(['fleet_manager', 'admin'])
+                                : hasRole(['fleet_manager', 'financial_analyst', 'admin'])
+                            ) && (
                               <button
                                 onClick={log.onDelete}
                                 className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-error flex items-center gap-1.5"

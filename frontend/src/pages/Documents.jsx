@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { api } from '../utils/api';
 
 const DOCUMENT_TYPES = [
   { id: 'delivery_challan', name: 'Delivery Challan', icon: 'receipt_long', color: 'bg-orange-50 text-orange-800 border-orange-100' },
@@ -15,58 +16,73 @@ const DOCUMENT_TYPES = [
   { id: 'trip_sheet', name: 'Trip Sheet', icon: 'map', color: 'bg-sky-50 text-sky-800 border-sky-100' },
 ];
 
-const loadDocuments = () => {
-  try {
-    return JSON.parse(sessionStorage.getItem('mock_documents') || '[]');
-  } catch {
-    return [];
-  }
-};
-
-const saveDocuments = (docs) => {
-  sessionStorage.setItem('mock_documents', JSON.stringify(docs));
-};
-
 export default function Documents() {
-  const [documents, setDocuments] = useState(loadDocuments);
+  const [documents, setDocuments] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedType, setSelectedType] = useState(DOCUMENT_TYPES[0].id);
   const [fileName, setFileName] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [fileRef, setFileRef] = useState('');
   const [notes, setNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  const handleUpload = () => {
-    if (!fileName) return;
-    const docType = DOCUMENT_TYPES.find((d) => d.id === selectedType);
-    const newDoc = {
-      id: Date.now(),
-      typeId: selectedType,
-      typeName: docType?.name || selectedType,
-      fileName,
-      reference: fileRef || `REF-${Date.now().toString(36).toUpperCase()}`,
-      notes,
-      uploadedAt: new Date().toISOString(),
-      size: `${(Math.random() * 4 + 0.2).toFixed(1)} MB`,
-      status: 'Verified',
-    };
-    const updated = [newDoc, ...documents];
-    setDocuments(updated);
-    saveDocuments(updated);
+  const loadDocuments = async () => {
+    try {
+      setError('');
+      const data = await api.get('/api/documents');
+      setDocuments(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load documents.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  const resetUploadForm = () => {
     setShowUploadModal(false);
     setFileName('');
+    setSelectedFile(null);
     setFileRef('');
     setNotes('');
     setSelectedType(DOCUMENT_TYPES[0].id);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleDelete = (id) => {
-    const updated = documents.filter((d) => d.id !== id);
-    setDocuments(updated);
-    saveDocuments(updated);
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('document_type', selectedType);
+    formData.append('document_number', fileRef);
+    formData.append('notes', notes);
+
+    try {
+      setError('');
+      await api.post('/api/documents', formData);
+      resetUploadForm();
+      loadDocuments();
+    } catch (err) {
+      setError(err.message || 'Upload failed.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      setError('');
+      await api.delete(`/api/documents/${id}`);
+      loadDocuments();
+    } catch (err) {
+      setError(err.message || 'Delete failed.');
+    }
   };
 
   const filteredDocs = documents.filter((doc) => {
@@ -87,8 +103,25 @@ export default function Documents() {
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+      {error && (
+        <div className="p-4 rounded-xl bg-error-container text-on-error-container text-xs font-medium border border-error/20 flex items-center gap-2">
+          <span className="material-symbols-outlined text-base text-error">report_problem</span>
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Header Actions Row */}
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -196,7 +229,11 @@ export default function Documents() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer" title="Download">
+                          <button
+                            onClick={() => api.download(`/api/documents/${doc.id}/download`, doc.fileName)}
+                            className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                            title="Download"
+                          >
                             <span className="material-symbols-outlined text-base">download</span>
                           </button>
                           <button
@@ -271,7 +308,10 @@ export default function Documents() {
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) setFileName(file.name);
+                  if (file) {
+                    setSelectedFile(file);
+                    setFileName(file.name);
+                  }
                 }}
               />
             </div>
@@ -303,16 +343,16 @@ export default function Documents() {
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={resetUploadForm}
                 className="flex-1 border border-outline-variant/60 text-on-surface-variant font-bold py-3 rounded-xl text-xs hover:bg-surface-container cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpload}
-                disabled={!fileName}
+                disabled={!selectedFile}
                 className={`flex-1 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  fileName
+                  selectedFile
                     ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/95'
                     : 'bg-outline-variant/30 text-on-surface-variant cursor-not-allowed'
                 }`}

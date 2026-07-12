@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
 
 export default function Trips() {
-  const { hasRole } = useAuth();
-  
+  const createTripReference = () => 'TRP-' + Math.floor(1000 + Math.random() * 9000);
+
   const [trips, setTrips] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -17,8 +16,8 @@ export default function Trips() {
   const [activeTab, setActiveTab] = useState('All');
   
   // Trip Configuration Form state
-  const [formData, setFormData] = useState({
-    name: 'TRP-' + Math.floor(1000 + Math.random() * 9000),
+  const [formData, setFormData] = useState(() => ({
+    name: createTripReference(),
     source: '',
     destination: '',
     cargo_weight: '5000',
@@ -28,7 +27,7 @@ export default function Trips() {
     region_id: '',
     planned_date: new Date().toISOString().split('T')[0],
     notes: '',
-  });
+  }));
 
   // Complete Trip modal states
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -78,9 +77,10 @@ export default function Trips() {
 
     const body = {
       ...formData,
-      vehicle_id: parseInt(formData.vehicle_id),
-      driver_id: parseInt(formData.driver_id),
-      region_id: parseInt(formData.region_id),
+      source: regions.find((region) => String(region.id) === String(formData.region_id))?.name || formData.source || 'Dispatch Hub',
+      vehicle_id: formData.vehicle_id,
+      driver_id: formData.driver_id,
+      region_id: formData.region_id,
       cargo_weight: parseFloat(formData.cargo_weight),
       planned_distance: parseFloat(formData.planned_distance),
     };
@@ -90,7 +90,7 @@ export default function Trips() {
       // Reset form ID
       setFormData(prev => ({
         ...prev,
-        name: 'TRP-' + Math.floor(1000 + Math.random() * 9000),
+        name: createTripReference(),
         destination: '',
         notes: '',
       }));
@@ -164,10 +164,6 @@ export default function Trips() {
   // Filter available items for dropdowns
   const availableVehicles = vehicles.filter((v) => v.status === 'Available');
   const availableDrivers = drivers.filter((d) => d.status === 'Available');
-
-  // Selected vehicle details for weight indicator
-  const selectedVehicle = vehicles.find(v => v.id === parseInt(formData.vehicle_id));
-  const capacityPct = selectedVehicle ? Math.round((parseFloat(formData.cargo_weight) / (selectedVehicle.capacity || 1)) * 100) : 0;
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
@@ -430,7 +426,6 @@ export default function Trips() {
 
               {/* Isometric Truck Render Box with dynamic counts */}
               <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30 flex flex-col items-center justify-center relative overflow-hidden h-60">
-                {/* Minimalist 3D truck mockup illustration */}
                 <div className="text-primary text-[80px] leading-none mb-4 animate-pulse">
                   <span className="material-symbols-outlined text-[96px]">local_shipping</span>
                 </div>

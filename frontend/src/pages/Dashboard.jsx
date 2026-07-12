@@ -8,6 +8,8 @@ export default function Dashboard() {
   const { alerts } = useAuth();
   const [kpis, setKpis] = useState(null);
   const [vTypes, setVTypes] = useState([]);
+  const [regions, setRegions] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
@@ -17,12 +19,16 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadInitial() {
       try {
-        const [kpiData, typeData] = await Promise.all([
+        const [kpiData, typeData, regionData, vehicleData] = await Promise.all([
           api.get('/api/dashboard/kpis'),
           api.get('/api/config/vehicle_types'),
+          api.get('/api/config/regions'),
+          api.get('/api/vehicles'),
         ]);
         setKpis(kpiData);
         setVTypes(typeData);
+        setRegions(regionData);
+        setVehicles(vehicleData);
       } catch (err) {
         console.error('Failed to load initial dashboard data:', err.message);
       } finally {
@@ -48,15 +54,7 @@ export default function Dashboard() {
     }
   }, [selectedRegion, selectedStatus, selectedType]);
 
-  const regions = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
-    'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-    'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-    'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi'
-  ];
-  const statuses = ['Available', 'On Route', 'In Transit', 'Loading', 'Maintenance', 'Offline'];
+  const statuses = ['Available', 'On Trip', 'In Shop', 'Retired'];
 
   if (loading) {
     return (
@@ -69,14 +67,16 @@ export default function Dashboard() {
     );
   }
 
-  // Fallbacks for KPIs
-  const activeVehicles = kpis?.active_vehicles ?? 120;
-  const availableVehicles = kpis?.available_vehicles ?? 86;
-  const vehiclesMaintenance = kpis?.vehicles_in_maintenance ?? 12;
-  const activeTrips = kpis?.active_trips ?? 22;
-  const pendingTrips = kpis?.pending_trips ?? 5;
-  const driversOnDuty = kpis?.drivers_on_duty ?? 34;
-  const utilization = Math.round((activeTrips / (activeVehicles || 1)) * 100) || 88;
+  const activeVehicles = kpis?.active_vehicles ?? 0;
+  const availableVehicles = kpis?.available_vehicles ?? 0;
+  const vehiclesMaintenance = kpis?.vehicles_in_maintenance ?? 0;
+  const activeTrips = kpis?.active_trips ?? 0;
+  const pendingTrips = kpis?.pending_trips ?? 0;
+  const driversOnDuty = kpis?.drivers_on_duty ?? 0;
+  const utilization = Math.round(kpis?.fleet_utilization ?? 0);
+  const featuredVehicle = vehicles.find((vehicle) => vehicle.status === 'Available') || vehicles[0];
+  const dailyCost = featuredVehicle?.acquisition_cost ? Number(featuredVehicle.acquisition_cost) / 365 : 0;
+  const capacity = Number(featuredVehicle?.capacity || 0);
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
@@ -91,7 +91,7 @@ export default function Dashboard() {
               className="pl-4 pr-10 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer"
             >
               <option value="All">All Over India</option>
-              {regions.map(r => <option key={r} value={r}>{r}</option>)}
+              {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
             <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
           </div>
@@ -227,22 +227,32 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-primary text-3xl">local_shipping</span>
               <div>
-                <h3 className="font-headline text-2xl font-bold text-on-surface">SAH-TR-761</h3>
-                <p className="text-xs text-on-surface-variant font-medium">Sahara Hauler Pro-X • Heavy Truck</p>
+                <h3 className="font-headline text-2xl font-bold text-on-surface">
+                  {featuredVehicle?.registration_number || 'No vehicle selected'}
+                </h3>
+                <p className="text-xs text-on-surface-variant font-medium">
+                  {[featuredVehicle?.vehicle_name || featuredVehicle?.name, featuredVehicle?.transit_ops_vehicle_type?.name]
+                    .filter(Boolean)
+                    .join(' • ') || 'Fleet record will appear here'}
+                </p>
               </div>
             </div>
-            <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-150 rounded-full text-xs font-semibold">Available</span>
+            <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-150 rounded-full text-xs font-semibold">
+              {featuredVehicle?.status || 'No data'}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
               <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Odometer Value</p>
-              <p className="font-headline text-2xl font-bold text-on-surface mt-1">12,450 km</p>
-              <p className="text-xs text-on-surface-variant mt-1 font-medium">Last logged 1,185 km ago</p>
+              <p className="font-headline text-2xl font-bold text-on-surface mt-1">
+                {Number(featuredVehicle?.odometer || 0).toLocaleString()} km
+              </p>
+              <p className="text-xs text-on-surface-variant mt-1 font-medium">Current master reading</p>
             </div>
             <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
               <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Daily Cost Estimate</p>
-              <p className="font-headline text-2xl font-bold text-on-surface mt-1">₹142.50</p>
+              <p className="font-headline text-2xl font-bold text-on-surface mt-1">₹{dailyCost.toFixed(2)}</p>
               <p className="text-xs text-on-surface-variant mt-1 font-medium">Based on fuel & servicing</p>
             </div>
           </div>
@@ -251,10 +261,10 @@ export default function Dashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-on-surface-variant">Active Load Capacity</span>
-              <span className="text-on-surface">8,500 / 15,000 lb (56%)</span>
+              <span className="text-on-surface">{capacity.toLocaleString()} lb capacity</span>
             </div>
             <div className="w-full bg-surface-container h-2.5 rounded-full overflow-hidden">
-              <div className="bg-primary h-full rounded-full" style={{ width: '56.6%' }}></div>
+              <div className="bg-primary h-full rounded-full" style={{ width: featuredVehicle ? '100%' : '0%' }}></div>
             </div>
           </div>
 

@@ -5,6 +5,32 @@ const { requireRole, requirePermission } = require('../../shared/middleware/rbac
 
 const router = express.Router();
 
+async function attachTripLookups(trips) {
+  const rows = Array.isArray(trips) ? trips : [trips];
+  const vehicleIds = [...new Set(rows.map((trip) => trip.vehicle_id).filter(Boolean))];
+  const driverIds = [...new Set(rows.map((trip) => trip.driver_id).filter(Boolean))];
+  const regionIds = [...new Set(rows.map((trip) => trip.region_id).filter(Boolean))];
+
+  const [vehiclesRes, driversRes, regionsRes] = await Promise.all([
+    vehicleIds.length ? supabaseAdmin.from('vehicles').select('*').in('id', vehicleIds) : { data: [] },
+    driverIds.length ? supabaseAdmin.from('drivers').select('*').in('id', driverIds) : { data: [] },
+    regionIds.length ? supabaseAdmin.from('transit_ops_region').select('*').in('id', regionIds) : { data: [] },
+  ]);
+
+  const vehiclesById = new Map((vehiclesRes.data || []).map((vehicle) => [String(vehicle.id), vehicle]));
+  const driversById = new Map((driversRes.data || []).map((driver) => [String(driver.id), driver]));
+  const regionsById = new Map((regionsRes.data || []).map((region) => [String(region.id), region]));
+
+  const enriched = rows.map((trip) => ({
+    ...trip,
+    transit_ops_vehicle: trip.vehicle_id ? vehiclesById.get(String(trip.vehicle_id)) || null : null,
+    transit_ops_driver: trip.driver_id ? driversById.get(String(trip.driver_id)) || null : null,
+    transit_ops_region: trip.region_id ? regionsById.get(String(trip.region_id)) || null : null,
+  }));
+
+  return Array.isArray(trips) ? enriched : enriched[0];
+}
+
 // GET /api/trips — List all trips (Fleet Manager, Safety Officer, Financial Analyst can see all)
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -36,7 +62,8 @@ router.get('/', authenticate, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch trips' });
     }
 
-    res.json({ trips: data, count: data.length });
+    const trips = await attachTripLookups(data || []);
+    res.json({ trips, count: trips.length });
   } catch (err) {
     console.error('List trips exception:', err.message);
     res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -70,7 +97,7 @@ router.get('/:id', authenticate, async (req, res) => {
       }
     }
 
-    res.json(data);
+    res.json(await attachTripLookups(data));
   } catch (err) {
     console.error('Get trip error:', err.message);
     res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -84,7 +111,7 @@ router.post(
   requireRole('fleet_manager', 'admin'),
   requirePermission('trips', 'create'),
   async (req, res) => {
-    const { name, source, destination, cargo_weight, planned_distance, vehicle_id, driver_id, planned_date } = req.body;
+    const { name, source, destination, cargo_weight, planned_distance, vehicle_id, driver_id, planned_date, region_id, notes } = req.body;
 
     if (!name || !source || !destination || cargo_weight === undefined || !planned_distance) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -132,6 +159,8 @@ router.post(
           vehicle_id,
           driver_id,
           planned_date,
+          region_id: region_id || null,
+          notes: notes || null,
           state: 'Draft',
         })
         .select()
@@ -142,7 +171,7 @@ router.post(
         return res.status(400).json({ error: tripError.message });
       }
 
-      res.status(201).json(trip);
+      res.status(201).json(await attachTripLookups(trip));
     } catch (err) {
       console.error('Create trip exception:', err);
       res.status(500).json({ error: 'Internal server error' });

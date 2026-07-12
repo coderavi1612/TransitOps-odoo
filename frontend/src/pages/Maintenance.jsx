@@ -55,7 +55,7 @@ export default function Maintenance() {
 
     const body = {
       ...formData,
-      vehicle_id: parseInt(formData.vehicle_id),
+      vehicle_id: formData.vehicle_id,
       maintenance_type_id: parseInt(formData.maintenance_type_id),
       cost: parseFloat(formData.cost),
     };
@@ -116,13 +116,17 @@ export default function Maintenance() {
     );
   }
 
-  // Selected vehicle for details block
-  const selectedVehicle = vehicles.find(v => v.id === parseInt(formData.vehicle_id));
-
   // Compute analytics
   const totalCost = logs.reduce((acc, curr) => acc + parseFloat(curr.cost || 0), 0);
   const avgCost = logs.length ? Math.round(totalCost / logs.length) : 0;
   const inShopCount = vehicles.filter(v => v.status === 'In Shop').length;
+  const activeFleetCount = vehicles.filter(v => v.status !== 'Retired').length;
+  const fleetHealthScore = activeFleetCount
+    ? Math.round(((activeFleetCount - inShopCount) / activeFleetCount) * 100)
+    : 0;
+  const upcomingInspection = logs
+    .filter((log) => log.state === 'Scheduled' && log.scheduled_date)
+    .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))[0];
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
@@ -141,8 +145,8 @@ export default function Maintenance() {
           <div className="space-y-2">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Fleet Health Score</span>
             <div className="flex items-baseline gap-2">
-              <p className="font-headline text-4xl font-extrabold text-on-surface">94%</p>
-              <span className="px-2 py-0.5 bg-rose-50 text-rose-800 text-[10px] font-bold rounded-full border border-rose-100">+2.4% this month</span>
+              <p className="font-headline text-4xl font-extrabold text-on-surface">{fleetHealthScore}%</p>
+              <span className="px-2 py-0.5 bg-rose-50 text-rose-800 text-[10px] font-bold rounded-full border border-rose-100">{inShopCount} in shop</span>
             </div>
             <p className="text-xs text-on-surface-variant font-medium leading-relaxed max-w-xs">
               Your enterprise fleet is performing above industry benchmarks. {inShopCount} vehicles are currently in shop for scheduled tune-ups.
@@ -160,7 +164,7 @@ export default function Maintenance() {
                 className="stroke-primary fill-none" 
                 strokeWidth="6" 
                 strokeDasharray={`${2 * Math.PI * 32}`} 
-                strokeDashoffset={`${2 * Math.PI * 32 * (1 - 0.94)}`} 
+                strokeDashoffset={`${2 * Math.PI * 32 * (1 - fleetHealthScore / 100)}`} 
               />
             </svg>
             <span className="material-symbols-outlined text-primary text-xl absolute">favorite</span>
@@ -174,8 +178,12 @@ export default function Maintenance() {
             <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant/20 flex items-center gap-3 mt-3">
               <span className="material-symbols-outlined text-primary p-2 bg-surface rounded-lg">calendar_today</span>
               <div className="text-xs">
-                <p className="font-bold text-on-surface">Logistics Van V-20</p>
-                <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium">May 12, 2026</p>
+                <p className="font-bold text-on-surface">
+                  {upcomingInspection?.transit_ops_vehicle?.vehicle_name || upcomingInspection?.transit_ops_vehicle?.registration_number || 'No inspection scheduled'}
+                </p>
+                <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium">
+                  {upcomingInspection ? new Date(upcomingInspection.scheduled_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Create a maintenance record'}
+                </p>
               </div>
             </div>
           </div>
@@ -183,7 +191,9 @@ export default function Maintenance() {
             <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
               <div className="bg-primary h-full" style={{ width: '75%' }}></div>
             </div>
-            <p className="text-[10px] text-on-surface-variant font-medium">Next brake and engine assessment in 4 days.</p>
+            <p className="text-[10px] text-on-surface-variant font-medium">
+              {upcomingInspection?.transit_ops_maintenance_type?.name || 'Scheduled items will appear here.'}
+            </p>
           </div>
         </div>
 

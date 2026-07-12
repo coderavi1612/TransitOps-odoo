@@ -2,20 +2,25 @@ import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 
 export default function Reports() {
-  const [vehicles, setVehicles] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [kpis, setKpis] = useState(null);
+  const [performanceRows, setPerformanceRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState('');
+  const [exportError, setExportError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [vehicleList, analyticsData] = await Promise.all([
-          api.get('/api/vehicles'),
+        const [analyticsData, kpiData, performanceData] = await Promise.all([
           api.get('/api/dashboard/analytics'),
+          api.get('/api/dashboard/kpis'),
+          api.get('/api/dashboard/vehicle-performance'),
         ]);
-        setVehicles(vehicleList);
         setAnalytics(analyticsData);
+        setKpis(kpiData);
+        setPerformanceRows(performanceData);
       } catch (err) {
         console.error('Failed to load strategic reports:', err.message);
       } finally {
@@ -37,10 +42,31 @@ export default function Reports() {
   }
 
   // Filter vehicle listings
-  const filteredVehicles = vehicles.filter(v =>
+  const filteredVehicles = performanceRows.filter(v =>
     v.registration_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.vehicle_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const fuelEfficiency = kpis?.fuel_efficiency ?? 0;
+  const fleetUtilization = kpis?.fleet_utilization ?? 0;
+  const operationalCost = kpis?.operational_cost ?? 0;
+  const vehicleRoi = ((kpis?.vehicle_roi ?? 0) * 100).toFixed(1);
+
+  const handleExport = async (type) => {
+    setExportError('');
+    setExporting(type);
+
+    try {
+      if (type === 'csv') {
+        await api.download('/api/dashboard/reports/audit/export', 'transitops_audit_report.csv');
+      } else {
+        await api.download('/api/dashboard/reports/strategy/pdf', 'transitops_strategy_report.pdf');
+      }
+    } catch (err) {
+      setExportError(err.message || 'Export failed.');
+    } finally {
+      setExporting('');
+    }
+  };
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
@@ -52,10 +78,12 @@ export default function Reports() {
             <span className="material-symbols-outlined text-outline text-lg">local_gas_station</span>
           </div>
           <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-on-surface">14.8</p>
+            <p className="font-headline text-3xl font-bold text-on-surface">{fuelEfficiency.toFixed(1)}</p>
             <span className="text-xs text-on-surface-variant font-medium">km/L</span>
           </div>
-          <p className="text-[10px] text-red-700 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full font-bold inline-block mt-2">-2.4% vs target</p>
+          <p className="text-[10px] text-on-surface-variant bg-surface-container border border-outline-variant px-2 py-0.5 rounded-full font-bold inline-block mt-2">
+            {analytics?.completed_trips ?? 0} completed trips
+          </p>
         </div>
 
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm">
@@ -64,10 +92,12 @@ export default function Reports() {
             <span className="material-symbols-outlined text-outline text-lg">group_work</span>
           </div>
           <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-on-surface">87.4</p>
+            <p className="font-headline text-3xl font-bold text-on-surface">{fleetUtilization.toFixed(1)}</p>
             <span className="text-xs text-on-surface-variant font-medium">%</span>
           </div>
-          <p className="text-[10px] text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full font-bold inline-block mt-2">+12% growth</p>
+          <p className="text-[10px] text-on-surface-variant bg-surface-container border border-outline-variant px-2 py-0.5 rounded-full font-bold inline-block mt-2">
+            {kpis?.active_trips ?? 0} active trips
+          </p>
         </div>
 
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm">
@@ -76,10 +106,10 @@ export default function Reports() {
             <span className="material-symbols-outlined text-outline text-lg">payments</span>
           </div>
           <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-on-surface">₹420.5k</p>
+            <p className="font-headline text-3xl font-bold text-on-surface">₹{operationalCost.toLocaleString('en-IN')}</p>
             <span className="text-xs text-on-surface-variant font-medium">INR</span>
           </div>
-          <p className="text-[10px] text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full font-bold inline-block mt-2">+5.1% efficiency</p>
+          <p className="text-[10px] text-on-surface-variant bg-surface-container border border-outline-variant px-2 py-0.5 rounded-full font-bold inline-block mt-2">Live operating spend</p>
         </div>
 
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
@@ -88,15 +118,14 @@ export default function Reports() {
             <span className="material-symbols-outlined text-primary text-lg">show_chart</span>
           </div>
           <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-primary">24.6%</p>
+            <p className="font-headline text-3xl font-bold text-primary">{vehicleRoi}%</p>
           </div>
-          <p className="text-[10px] text-primary bg-primary-fixed px-2 py-0.5 rounded-full font-bold inline-block mt-2">Target Met</p>
+          <p className="text-[10px] text-primary bg-primary-fixed px-2 py-0.5 rounded-full font-bold inline-block mt-2">Average ROI</p>
         </div>
       </div>
 
       {/* Analytics Trend & Exports */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Trend chart mockup */}
         <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/60 shadow-sm lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between border-b border-outline-variant/40 pb-4">
             <div>
@@ -144,20 +173,36 @@ export default function Reports() {
             <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
               Compile high-resolution datasets of fleet operations, fuel logs, and driver safety logs for compliance audits or strategic operations reviews.
             </p>
+            {exportError && (
+              <div className="p-3 rounded-xl bg-error-container text-on-error-container text-[11px] font-semibold border border-error/20 flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm text-error">report_problem</span>
+                <span>{exportError}</span>
+              </div>
+            )}
 
             <div className="space-y-3">
-              <button className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-3 rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer">
+              <button
+                type="button"
+                onClick={() => handleExport('csv')}
+                disabled={Boolean(exporting)}
+                className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-3 rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              >
                 <span className="flex items-center gap-2">
                   <span className="material-symbols-outlined">csv</span>
-                  Export Audit CSV Dataset
+                  {exporting === 'csv' ? 'Preparing CSV...' : 'Export Audit CSV Dataset'}
                 </span>
                 <span className="material-symbols-outlined">download</span>
               </button>
 
-              <button className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-3 rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer">
+              <button
+                type="button"
+                onClick={() => handleExport('pdf')}
+                disabled={Boolean(exporting)}
+                className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-3 rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              >
                 <span className="flex items-center gap-2">
                   <span className="material-symbols-outlined">picture_as_pdf</span>
-                  Download Strategy PDF Report
+                  {exporting === 'pdf' ? 'Preparing PDF...' : 'Download Strategy PDF Report'}
                 </span>
                 <span className="material-symbols-outlined">download</span>
               </button>
@@ -221,20 +266,15 @@ export default function Reports() {
                   if (v.status === 'On Trip') statusClass = 'bg-blue-50 text-blue-700 border border-blue-150';
                   if (v.status === 'In Shop') statusClass = 'bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary/10';
 
-                  // Mocking values for reports demonstration
-                  const mockEff = v.transit_ops_vehicle_type?.name === 'Van' ? '16.8 km/L' : '12.2 km/L';
-                  const mockUtil = v.status === 'On Trip' ? '92%' : v.status === 'Available' ? '78%' : '0%';
-                  const mockRoi = v.status === 'Retired' ? '10.5%' : v.status === 'On Trip' ? '28.4%' : '19.2%';
-
                   return (
                     <tr key={v.id} className="hover:bg-surface-container-low transition-colors">
                       <td className="px-6 py-4">
                         <p className="font-bold text-on-surface">{v.registration_number}</p>
                         <p className="text-[10px] text-on-surface-variant mt-0.5">{v.vehicle_name}</p>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-on-surface">{mockEff}</td>
-                      <td className="px-6 py-4 font-semibold text-on-surface">{mockUtil}</td>
-                      <td className="px-6 py-4 font-semibold text-on-surface">{mockRoi}</td>
+                      <td className="px-6 py-4 font-semibold text-on-surface">{v.fuel_efficiency.toFixed(1)} km/L</td>
+                      <td className="px-6 py-4 font-semibold text-on-surface">{v.utilization_rate.toFixed(1)}%</td>
+                      <td className="px-6 py-4 font-semibold text-on-surface">{(v.roi_contribution * 100).toFixed(1)}%</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${statusClass}`}>
                           {v.status}

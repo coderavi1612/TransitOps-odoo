@@ -5,6 +5,42 @@ const { requireRole, requirePermission } = require('../../shared/middleware/rbac
 
 const router = express.Router();
 
+async function getExpenseCategory(expense_category_id, fallback) {
+  if (!expense_category_id) {
+    return { id: null, name: fallback || 'Misc', category_type: fallback || 'Misc' };
+  }
+  const { data } = await supabaseAdmin
+    .from('transit_ops_expense_category')
+    .select('*')
+    .eq('id', expense_category_id)
+    .single();
+  return data || { id: expense_category_id, name: fallback || 'Misc', category_type: fallback || 'Misc' };
+}
+
+async function attachExpenseLookups(expenses) {
+  const rows = Array.isArray(expenses) ? expenses : [expenses];
+  const vehicleIds = [...new Set(rows.map((expense) => expense.vehicle_id).filter(Boolean))];
+  const categoryIds = [...new Set(rows.map((expense) => expense.expense_category_id).filter(Boolean))];
+
+  const [vehiclesRes, categoriesRes] = await Promise.all([
+    vehicleIds.length ? supabaseAdmin.from('vehicles').select('*').in('id', vehicleIds) : { data: [] },
+    categoryIds.length ? supabaseAdmin.from('transit_ops_expense_category').select('*').in('id', categoryIds) : { data: [] },
+  ]);
+
+  const vehiclesById = new Map((vehiclesRes.data || []).map((vehicle) => [String(vehicle.id), vehicle]));
+  const categoriesById = new Map((categoriesRes.data || []).map((category) => [String(category.id), category]));
+
+  const enriched = rows.map((expense) => ({
+    ...expense,
+    transit_ops_vehicle: expense.vehicle_id ? vehiclesById.get(String(expense.vehicle_id)) || null : null,
+    transit_ops_expense_category: expense.expense_category_id
+      ? categoriesById.get(String(expense.expense_category_id)) || { name: expense.expense_category, category_type: expense.expense_category }
+      : { name: expense.expense_category, category_type: expense.expense_category },
+  }));
+
+  return Array.isArray(expenses) ? enriched : enriched[0];
+}
+
 // GET /api/expenses — List expenses
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -20,7 +56,7 @@ router.get('/', authenticate, async (req, res) => {
 
     const { data, error } = await query.order('date', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(await attachExpenseLookups(data || []));
   } catch (err) {
     console.error('List expenses error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -34,14 +70,16 @@ router.post(
   requireRole('fleet_manager', 'financial_analyst', 'admin'),
   requirePermission('expenses', 'create'),
   async (req, res) => {
-    const { vehicle_id, trip_id, expense_category, amount, date, notes } = req.body;
+    const { vehicle_id, trip_id, expense_category, expense_category_id, amount, date, notes } = req.body;
 
-    if (!vehicle_id || !expense_category || !amount || !date) {
+    if (!vehicle_id || (!expense_category && !expense_category_id) || !amount || !date) {
       return res.status(400).json({ error: 'Missing required fields: vehicle_id, expense_category, amount, date' });
     }
 
+    const category = await getExpenseCategory(expense_category_id, expense_category);
+    const resolvedCategory = category.category_type || category.name || expense_category;
     const validCategories = ['Toll', 'Maintenance', 'Misc'];
-    if (!validCategories.includes(expense_category)) {
+    if (!validCategories.includes(resolvedCategory)) {
       return res.status(400).json({ error: `Invalid expense_category. Must be one of: ${validCategories.join(', ')}` });
     }
 
@@ -51,7 +89,8 @@ router.post(
         .insert({
           vehicle_id,
           trip_id: trip_id || null,
-          expense_category,
+          expense_category: resolvedCategory,
+          expense_category_id: expense_category_id || null,
           amount,
           date,
           notes: notes || '',
@@ -60,7 +99,7 @@ router.post(
         .single();
 
       if (error) return res.status(400).json({ error: error.message });
-      res.status(201).json(data);
+      res.status(201).json(await attachExpenseLookups(data));
     } catch (err) {
       console.error('Create expense error:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -78,7 +117,7 @@ router.get('/:id', authenticate, async (req, res) => {
       .single();
 
     if (error || !data) return res.status(404).json({ error: 'Expense not found' });
-    res.json(data);
+    res.json(await attachExpenseLookups(data));
   } catch (err) {
     console.error('Get expense error:', err);
     res.status(500).json({ error: 'Internal server error' });
