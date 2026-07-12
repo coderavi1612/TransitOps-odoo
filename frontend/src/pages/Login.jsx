@@ -66,15 +66,7 @@ export default function Login() {
                 <p className="text-on-surface-variant text-sm mt-1">Manage cross-border freight with sun-baked simplicity and editorial precision.</p>
               </div>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-xl bg-primary-fixed text-primary">
-                <span className="material-symbols-outlined text-2xl">route</span>
-              </div>
-              <div>
-                <h3 className="font-headline text-xl font-semibold text-on-surface">Smart Dispatching</h3>
-                <p className="text-on-surface-variant text-sm mt-1">AI-powered routing that optimizes for time, fuel, and desert conditions.</p>
-              </div>
-            </div>
+
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-xl bg-primary-fixed text-primary">
                 <span className="material-symbols-outlined text-2xl">monitoring</span>
@@ -239,12 +231,6 @@ export default function Login() {
             {/* Support Footer */}
             <div className="mt-10 pt-6 border-t border-outline-variant/60 flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-[11px] text-on-surface-variant/70 uppercase tracking-widest">TransitOps v1.0</p>
-              <div className="flex gap-4">
-                <a className="text-[11px] font-bold text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1" href="mailto:support@transitops.com">
-                  <span className="material-symbols-outlined text-sm">help</span>
-                  Support
-                </a>
-              </div>
             </div>
           </div>
 
