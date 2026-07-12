@@ -12,6 +12,7 @@ const fuelRoutes = require('./services/fuel');
 const expenseRoutes = require('./services/expenses');
 const configRoutes = require('./services/config');
 const dashboardRoutes = require('./services/dashboard');
+const r2Routes = require('./services/r2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +36,7 @@ app.use('/api/fuel', fuelRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/r2', r2Routes);
 
 // 404
 app.use((req, res) => {
