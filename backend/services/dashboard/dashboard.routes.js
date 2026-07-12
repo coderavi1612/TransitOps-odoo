@@ -39,7 +39,7 @@ router.get('/kpis', authenticate, async (req, res) => {
 router.get('/analytics', authenticate, async (req, res) => {
   const { vehicle_type_id, region_id, status, date_from, date_to } = req.query;
 
-  let query = supabase.from('transit_ops_trip').select('*, transit_ops_vehicle(*), transit_ops_driver(*)');
+  let query = supabase.from('transit_ops_trip').select('*, transit_ops_vehicle!transit_ops_trip_vehicle_id_fkey(*), transit_ops_driver!transit_ops_trip_driver_id_fkey(*)');
 
   if (date_from) query = query.gte('planned_date', date_from);
   if (date_to) query = query.lte('planned_date', date_to);
