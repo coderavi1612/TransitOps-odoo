@@ -165,4 +165,30 @@ router.put(
   }
 );
 
+// DELETE /api/vehicles/:id — Delete vehicle (Fleet Manager, Admin)
+router.delete(
+  '/:id',
+  authenticate,
+  requireRole('fleet_manager', 'admin'),
+  requirePermission('vehicles', 'delete'),
+  async (req, res) => {
+    try {
+      const { error } = await supabaseAdmin
+        .from('vehicles')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        console.error('Vehicle deletion error:', error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.json({ message: 'Vehicle deleted' });
+    } catch (err) {
+      console.error('Delete vehicle exception:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 module.exports = router;

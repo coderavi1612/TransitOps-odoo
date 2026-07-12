@@ -261,4 +261,30 @@ router.put(
   }
 );
 
+// DELETE /api/maintenance/:id — Delete a maintenance log (Fleet Manager, Safety Officer, Admin)
+router.delete(
+  '/:id',
+  authenticate,
+  requireRole('fleet_manager', 'safety_officer', 'admin'),
+  requirePermission('maintenance', 'delete'),
+  async (req, res) => {
+    try {
+      const { error } = await supabaseAdmin
+        .from('maintenance_logs')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        console.error('Maintenance deletion error:', error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.json({ message: 'Maintenance log deleted' });
+    } catch (err) {
+      console.error('Delete maintenance exception:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 module.exports = router;

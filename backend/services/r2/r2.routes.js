@@ -92,7 +92,7 @@ router.post(
       const { data: document, error: docError } = await supabase
         .from('transit_ops_vehicle_document')
         .insert({
-          vehicle_id: parseInt(vehicle_id, 10),
+          vehicle_id,
           document_type,
           document_number: document_number || null,
           issue_date: issue_date || null,

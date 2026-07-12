@@ -165,4 +165,30 @@ router.put(
   }
 );
 
+// DELETE /api/drivers/:id — Delete driver (Safety Officer, Fleet Manager, Admin)
+router.delete(
+  '/:id',
+  authenticate,
+  requireRole('safety_officer', 'fleet_manager', 'admin'),
+  requirePermission('drivers', 'delete'),
+  async (req, res) => {
+    try {
+      const { error } = await supabaseAdmin
+        .from('drivers')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        console.error('Driver deletion error:', error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.json({ message: 'Driver deleted' });
+    } catch (err) {
+      console.error('Delete driver exception:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 module.exports = router;

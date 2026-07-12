@@ -370,4 +370,67 @@ router.post(
   }
 );
 
+// PUT /api/trips/:id — Update trip details (Fleet Manager only)
+router.put(
+  '/:id',
+  authenticate,
+  requireRole('fleet_manager', 'admin'),
+  requirePermission('trips', 'update'),
+  async (req, res) => {
+    try {
+      const { data: trip, error: tripError } = await supabaseAdmin
+        .from('trips')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
+
+      if (tripError || !trip) {
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from('trips')
+        .update(req.body)
+        .eq('id', req.params.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        return res.status(400).json({ error: updateError.message });
+      }
+
+      res.json(updated);
+    } catch (err) {
+      console.error('Update trip exception:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// DELETE /api/trips/:id — Delete trip (Fleet Manager only)
+router.delete(
+  '/:id',
+  authenticate,
+  requireRole('fleet_manager', 'admin'),
+  requirePermission('trips', 'delete'),
+  async (req, res) => {
+    try {
+      const { error } = await supabaseAdmin
+        .from('trips')
+        .delete()
+        .eq('id', req.params.id);
+
+      if (error) {
+        console.error('Trip deletion error:', error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.json({ message: 'Trip deleted' });
+    } catch (err) {
+      console.error('Delete trip exception:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 module.exports = router;
