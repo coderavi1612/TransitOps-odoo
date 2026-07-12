@@ -8,6 +8,32 @@ export function AuthProvider({ children }) {
   const [roles, setRoles] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState([
+    {
+      id: 1,
+      type: 'Route Deviation',
+      time: '2m ago',
+      desc: 'LOG7614390 has exited the planned delivery corridor in Sector 7G.',
+      icon: 'warning',
+      color: 'text-tertiary bg-tertiary-fixed',
+    },
+    {
+      id: 2,
+      type: 'Service Required',
+      time: '15m ago',
+      desc: 'Brake sensor warning reported on Vehicle ID #042 during morning inspection.',
+      icon: 'build',
+      color: 'text-primary bg-primary-fixed',
+    },
+    {
+      id: 3,
+      type: 'Delayed Delivery',
+      time: '1h ago',
+      desc: "Traffic congestion on Highway 405 affecting Emily Carter's schedule.",
+      icon: 'timer',
+      color: 'text-secondary bg-secondary-fixed',
+    },
+  ]);
 
   // Checks current session using token from localStorage
   const checkSession = async () => {
@@ -140,6 +166,8 @@ export function AuthProvider({ children }) {
     signup,
     logout,
     checkSession,
+    alerts,
+    setAlerts,
     hasRole: (allowedRoles) => {
       if (roles.includes('admin')) return true;
       return allowedRoles.some((r) => roles.includes(r));

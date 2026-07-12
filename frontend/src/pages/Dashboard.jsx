@@ -1,59 +1,62 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { alerts } = useAuth();
   const [kpis, setKpis] = useState(null);
+  const [vTypes, setVTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [selectedType, setSelectedType] = useState('All');
 
-  // Fetch KPIs on load
+  // Fetch initial configuration on load
   useEffect(() => {
-    async function loadKpis() {
+    async function loadInitial() {
       try {
-        const data = await api.get('/api/dashboard/kpis');
-        setKpis(data);
+        const [kpiData, typeData] = await Promise.all([
+          api.get('/api/dashboard/kpis'),
+          api.get('/api/config/vehicle_types'),
+        ]);
+        setKpis(kpiData);
+        setVTypes(typeData);
       } catch (err) {
-        console.error('Failed to load dashboard KPIs:', err.message);
+        console.error('Failed to load initial dashboard data:', err.message);
       } finally {
         setLoading(false);
       }
     }
-    loadKpis();
+    loadInitial();
   }, []);
 
-  const regions = ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Gujarat', 'Uttar Pradesh'];
-  const statuses = ['Available', 'On Route', 'In Transit', 'Loading', 'Maintenance', 'Offline'];
+  // Re-fetch filtered KPIs on state changes
+  useEffect(() => {
+    async function reloadKpis() {
+      try {
+        const query = `?region=${selectedRegion}&status=${selectedStatus}&type=${selectedType}`;
+        const kpiData = await api.get(`/api/dashboard/kpis${query}`);
+        setKpis(kpiData);
+      } catch (err) {
+        console.warn('Failed to reload filtered KPIs:', err.message);
+      }
+    }
+    if (!loading) {
+      reloadKpis();
+    }
+  }, [selectedRegion, selectedStatus, selectedType]);
 
-  // Static alerts mock-up matching mockup design
-  const alerts = [
-    {
-      id: 1,
-      type: 'Route Deviation',
-      time: '2m ago',
-      desc: 'LOG7614390 has exited the planned delivery corridor in Sector 7G.',
-      icon: 'warning',
-      color: 'text-tertiary bg-tertiary-fixed',
-    },
-    {
-      id: 2,
-      type: 'Service Required',
-      time: '15m ago',
-      desc: 'Brake sensor warning reported on Vehicle ID #042 during morning inspection.',
-      icon: 'build',
-      color: 'text-primary bg-primary-fixed',
-    },
-    {
-      id: 3,
-      type: 'Delayed Delivery',
-      time: '1h ago',
-      desc: 'Traffic congestion on Highway 405 affecting Emily Carter\'s schedule.',
-      icon: 'timer',
-      color: 'text-secondary bg-secondary-fixed',
-    },
+  const regions = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+    'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+    'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+    'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi'
   ];
+  const statuses = ['Available', 'On Route', 'In Transit', 'Loading', 'Maintenance', 'Offline'];
 
   if (loading) {
     return (
@@ -87,7 +90,7 @@ export default function Dashboard() {
               onChange={(e) => setSelectedRegion(e.target.value)}
               className="pl-4 pr-10 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer"
             >
-              <option value="All">All Regions</option>
+              <option value="All">All Over India</option>
               {regions.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
             <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
@@ -105,6 +108,19 @@ export default function Dashboard() {
             </select>
             <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
           </div>
+
+          {/* Vehicle Type Filter */}
+          <div className="relative">
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="pl-4 pr-10 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer"
+            >
+              <option value="All">All Vehicle Types</option>
+              {vTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+          </div>
         </div>
 
         <button
@@ -117,41 +133,89 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Counters Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Active Vehicles</span>
-            <span className="text-[10px] text-green-700 bg-green-50 border border-green-150 px-2 py-0.5 rounded-full font-bold">+4%</span>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        {/* KPI 1: Active Vehicles */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label leading-tight">Active Vehicles</span>
+            <span className="material-symbols-outlined text-outline text-md shrink-0">local_shipping</span>
           </div>
-          <p className="font-headline text-4xl font-bold text-on-surface mt-4">{activeVehicles}</p>
-          <p className="text-xs text-on-surface-variant mt-1.5 font-medium">In circulation</p>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-none">{activeVehicles}</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">In circulation</p>
+          </div>
         </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Available Units</span>
-            <span className="text-[10px] text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full font-bold">Steady</span>
+        {/* KPI 2: Available Vehicles */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label leading-tight">Available Vehicles</span>
+            <span className="material-symbols-outlined text-green-700 text-md shrink-0">check_circle</span>
           </div>
-          <p className="font-headline text-4xl font-bold text-on-surface mt-4">{availableVehicles}</p>
-          <p className="text-xs text-on-surface-variant mt-1.5 font-medium">Ready for dispatch</p>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-none">{availableVehicles}</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">Ready for dispatch</p>
+          </div>
         </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">In Maintenance</span>
-            <span className="material-symbols-outlined text-outline text-lg">build</span>
+        {/* KPI 3: Vehicles in Maintenance */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label leading-tight">In Maintenance</span>
+            <span className="material-symbols-outlined text-tertiary text-md shrink-0">build</span>
           </div>
-          <p className="font-headline text-4xl font-bold text-on-surface mt-4">{vehiclesMaintenance}</p>
-          <p className="text-xs text-on-surface-variant mt-1.5 font-medium">Undergoing tune-ups</p>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-none">{vehiclesMaintenance}</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">In-shop tune-ups</p>
+          </div>
         </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider font-label">Utilization</span>
-            <span className="material-symbols-outlined text-primary text-lg">trending_up</span>
+        {/* KPI 4: Active Trips */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label leading-tight">Active Trips</span>
+            <span className="material-symbols-outlined text-outline text-md shrink-0">route</span>
           </div>
-          <p className="font-headline text-4xl font-bold text-primary mt-4">{utilization}%</p>
-          <p className="text-xs text-on-surface-variant mt-1.5 font-medium">Avg capacity usage</p>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-none">{activeTrips}</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">Currently en-route</p>
+          </div>
+        </div>
+
+        {/* KPI 5: Pending Trips */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label leading-tight">Pending Trips</span>
+            <span className="material-symbols-outlined text-outline text-md shrink-0">schedule</span>
+          </div>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-none">{pendingTrips}</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">Awaiting loading</p>
+          </div>
+        </div>
+
+        {/* KPI 6: Drivers On Duty */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label leading-tight">Drivers On Duty</span>
+            <span className="material-symbols-outlined text-outline text-md shrink-0">person_pin</span>
+          </div>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface leading-none">{driversOnDuty}</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">Assigned operators</p>
+          </div>
+        </div>
+
+        {/* KPI 7: Fleet Utilization */}
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40 shadow-sm bg-gradient-to-br from-primary/5 to-transparent flex flex-col justify-between min-h-[110px]">
+          <div className="flex justify-between items-start gap-1">
+            <span className="text-[10px] font-bold text-primary uppercase tracking-wider font-label leading-tight">Utilization</span>
+            <span className="material-symbols-outlined text-primary text-md shrink-0">trending_up</span>
+          </div>
+          <div className="mt-3">
+            <p className="font-headline text-2xl md:text-3xl font-bold text-primary leading-none">{utilization}%</p>
+            <p className="text-[9px] text-on-surface-variant mt-1.5 font-medium">Active fleet usage</p>
+          </div>
         </div>
       </div>
 
@@ -173,12 +237,12 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
               <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Odometer Value</p>
-              <p className="font-headline text-2xl font-bold text-on-surface mt-1">12,450 mi</p>
-              <p className="text-xs text-on-surface-variant mt-1 font-medium">Last logged 1,185 mi ago</p>
+              <p className="font-headline text-2xl font-bold text-on-surface mt-1">12,450 km</p>
+              <p className="text-xs text-on-surface-variant mt-1 font-medium">Last logged 1,185 km ago</p>
             </div>
             <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
               <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Daily Cost Estimate</p>
-              <p className="font-headline text-2xl font-bold text-on-surface mt-1">$142.50</p>
+              <p className="font-headline text-2xl font-bold text-on-surface mt-1">₹142.50</p>
               <p className="text-xs text-on-surface-variant mt-1 font-medium">Based on fuel & servicing</p>
             </div>
           </div>
@@ -199,8 +263,8 @@ export default function Dashboard() {
             <h4 className="font-headline text-lg font-bold text-on-surface">Operational Speed Analysis</h4>
             <div className="h-28 bg-surface-container-low rounded-xl border border-outline-variant/40 flex items-end justify-between px-6 py-4 relative">
               <div className="absolute top-3 left-4 flex gap-4 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                <span>Avg: 54 mph</span>
-                <span className="text-primary">Peak: 72 mph</span>
+                <span>Avg: 54 km/h</span>
+                <span className="text-primary">Peak: 72 km/h</span>
               </div>
               {/* Minimal bar graphs to represent speed sparkline */}
               {[40, 55, 60, 45, 30, 50, 68, 72, 60, 55, 50, 45, 65, 55, 48].map((h, i) => (

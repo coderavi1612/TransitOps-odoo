@@ -13,6 +13,7 @@ import Maintenance from './pages/Maintenance';
 import FuelExpenses from './pages/FuelExpenses';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Documents from './pages/Documents';
 
 // Shared Layout Wrapper for Protected Routes
 function MainLayout() {
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/fuel-expenses" element={<FuelExpenses />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/documents" element={<Documents />} />
             </Route>
           </Route>
         </Routes>

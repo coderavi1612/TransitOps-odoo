@@ -22,6 +22,7 @@ export default function Drivers() {
     safety_score: '100',
     status: 'Available',
     region_id: '',
+    avatar_url: '',
   });
 
   const [formError, setFormError] = useState('');
@@ -56,6 +57,7 @@ export default function Drivers() {
       safety_score: '98',
       status: 'Available',
       region_id: regions[0]?.id || '',
+      avatar_url: '',
     });
     setFormError('');
     setShowModal(true);
@@ -72,6 +74,7 @@ export default function Drivers() {
       safety_score: d.safety_score?.toString() || '100',
       status: d.status || 'Available',
       region_id: d.region_id || '',
+      avatar_url: d.avatar_url || '',
     });
     setFormError('');
     setShowModal(true);
@@ -215,9 +218,22 @@ export default function Drivers() {
               <div className="space-y-4">
                 {/* Top Title Section */}
                 <div className="flex justify-between items-start border-b border-outline-variant/40 pb-4">
-                  <div>
-                    <h3 className="font-headline text-2xl font-bold text-on-surface group-hover:text-primary transition-colors">{d.name}</h3>
-                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">License: {d.license_number}</p>
+                  <div className="flex items-center gap-3">
+                    {d.avatar_url ? (
+                      <img
+                        src={d.avatar_url}
+                        alt={d.name}
+                        className="w-12 h-12 rounded-full object-cover border border-outline-variant/60 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-lg shrink-0">
+                        {d.name ? d.name.charAt(0).toUpperCase() : 'D'}
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-headline text-2xl font-bold text-on-surface group-hover:text-primary transition-colors">{d.name}</h3>
+                      <p className="text-xs text-on-surface-variant font-medium mt-0.5">License: {d.license_number}</p>
+                    </div>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusClass}`}>
                     {d.status}
@@ -340,7 +356,7 @@ export default function Drivers() {
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1 (555) 012-9842"
+                    placeholder="+91 98765 43210"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -352,7 +368,18 @@ export default function Drivers() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="m.sterling@sahara.com"
+                    placeholder="m.sterling@transitops.in"
+                    className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Driver Photo URL</label>
+                  <input
+                    type="url"
+                    value={formData.avatar_url}
+                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                    placeholder="https://example.com/photo.jpg"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -364,7 +391,7 @@ export default function Drivers() {
                     required
                     value={formData.license_number}
                     onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
-                    placeholder="A-99812-HGV"
+                    placeholder="DL-14202600102"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>

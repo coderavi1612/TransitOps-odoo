@@ -13,6 +13,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/maintenance', label: 'Maintenance', icon: 'build' },
     { to: '/fuel-expenses', label: 'Fuel & Expenses', icon: 'local_gas_station' },
     { to: '/reports', label: 'Reports', icon: 'assessment' },
+    { to: '/documents', label: 'Document Docket', icon: 'folder_open' },
     { to: '/settings', label: 'Settings', icon: 'settings' },
   ];
 

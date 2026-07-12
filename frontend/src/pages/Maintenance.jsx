@@ -135,214 +135,266 @@ export default function Maintenance() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Card 1: Fleet Health Score */}
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex items-center justify-between">
-          <div>
+          <div className="space-y-2">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Fleet Health Score</span>
-            <p className="font-headline text-3xl font-bold text-on-surface mt-2">94%</p>
-            <p className="text-xs text-on-surface-variant mt-1.5 font-medium">+2.4% vs industry benchmarks</p>
+            <div className="flex items-baseline gap-2">
+              <p className="font-headline text-4xl font-extrabold text-on-surface">94%</p>
+              <span className="px-2 py-0.5 bg-rose-50 text-rose-800 text-[10px] font-bold rounded-full border border-rose-100">+2.4% this month</span>
+            </div>
+            <p className="text-xs text-on-surface-variant font-medium leading-relaxed max-w-xs">
+              Your enterprise fleet is performing above industry benchmarks. {inShopCount} vehicles are currently in shop for scheduled tune-ups.
+            </p>
           </div>
-          <span className="material-symbols-outlined text-green-700 text-3xl p-3 bg-green-50 rounded-full border border-green-100">favorite</span>
+          
+          {/* Circular gauge with heart */}
+          <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle cx="40" cy="40" r="32" className="stroke-outline-variant/30 fill-none" strokeWidth="6" />
+              <circle 
+                cx="40" 
+                cy="40" 
+                r="32" 
+                className="stroke-primary fill-none" 
+                strokeWidth="6" 
+                strokeDasharray={`${2 * Math.PI * 32}`} 
+                strokeDashoffset={`${2 * Math.PI * 32 * (1 - 0.94)}`} 
+              />
+            </svg>
+            <span className="material-symbols-outlined text-primary text-xl absolute">favorite</span>
+          </div>
         </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex items-center justify-between">
+        {/* Card 2: Upcoming Inspection */}
+        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Avg Service Cost</span>
-            <p className="font-headline text-3xl font-bold text-on-surface mt-2">${avgCost.toLocaleString()}</p>
-            <p className="text-xs text-on-surface-variant mt-1.5 font-medium">Estimated average per maintenance log</p>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label">Upcoming Inspection</span>
+            <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant/20 flex items-center gap-3 mt-3">
+              <span className="material-symbols-outlined text-primary p-2 bg-surface rounded-lg">calendar_today</span>
+              <div className="text-xs">
+                <p className="font-bold text-on-surface">Logistics Van V-20</p>
+                <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium">May 12, 2026</p>
+              </div>
+            </div>
           </div>
-          <span className="material-symbols-outlined text-primary text-3xl p-3 bg-primary-fixed rounded-full">payments</span>
+          <div className="mt-4 space-y-2">
+            <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+              <div className="bg-primary h-full" style={{ width: '75%' }}></div>
+            </div>
+            <p className="text-[10px] text-on-surface-variant font-medium">Next brake and engine assessment in 4 days.</p>
+          </div>
         </div>
 
+        {/* Card 3: Avg Service Cost */}
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Vehicles in Shop</span>
-            <p className="font-headline text-3xl font-bold text-on-surface mt-2">{inShopCount} Active</p>
-            <p className="text-xs text-on-surface-variant mt-1.5 font-medium">Currently undergoing tune-ups</p>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label">Avg. Service Cost</span>
+            <p className="font-headline text-3xl font-extrabold text-on-surface mt-2">₹{avgCost.toLocaleString()}</p>
+            <p className="text-[10px] text-on-surface-variant mt-1.5 font-medium">Estimated monthly average per unit</p>
           </div>
-          <span className="material-symbols-outlined text-tertiary text-3xl p-3 bg-tertiary-fixed rounded-full">build</span>
+          
+          {/* Sparkline column graph */}
+          <div className="flex items-end gap-1 h-12 shrink-0">
+            {[30, 45, 35, 60, 40].map((h, i) => (
+              <div key={i} className={`w-2.5 rounded-t-xs ${i === 3 ? 'bg-primary' : 'bg-primary-container/60'}`} style={{ height: `${h}%` }} />
+            ))}
+          </div>
         </div>
+
       </div>
 
       {/* Main Grid Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Side: Schedule Form */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm">
-            <h3 className="font-headline text-2xl font-bold text-on-surface border-b border-outline-variant/40 pb-4 mb-6">
-              Schedule Maintenance
-            </h3>
+        
+        {/* Left Side: Schedule Form (spans 2 columns) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm relative">
+            <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4 mb-6">
+              <h3 className="font-headline text-2xl font-bold text-on-surface">Schedule Maintenance</h3>
+              <span className="px-3 py-1 bg-rose-50 text-rose-800 text-[10px] font-bold rounded-full border border-rose-100 uppercase tracking-wider">
+                New Log Entry
+              </span>
+            </div>
 
-            <form onSubmit={handleScheduleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Select Vehicle</label>
-                <select
-                  value={formData.vehicle_id}
-                  onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value })}
-                  className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                >
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.registration_number} - {v.vehicle_name} ({v.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Service Type</label>
-                <select
-                  value={formData.maintenance_type_id}
-                  onChange={(e) => setFormData({ ...formData, maintenance_type_id: e.target.value })}
-                  className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                >
-                  {mTypes.map(mt => (
-                    <option key={mt.id} value={mt.id}>{mt.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleScheduleSubmit} className="space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Scheduled Date</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">Select Vehicle</label>
+                  <select
+                    value={formData.vehicle_id}
+                    onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value })}
+                    className="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface cursor-pointer"
+                  >
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {v.registration_number} - {v.vehicle_name} ({v.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">Service Type</label>
+                  <select
+                    value={formData.maintenance_type_id}
+                    onChange={(e) => setFormData({ ...formData, maintenance_type_id: e.target.value })}
+                    className="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface cursor-pointer"
+                  >
+                    {mTypes.map(mt => (
+                      <option key={mt.id} value={mt.id}>{mt.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">Scheduled Date</label>
                   <input
                     type="date"
                     required
                     value={formData.scheduled_date}
                     onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-                    className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                    className="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Estimated Cost ($)</label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.cost}
-                    onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                    className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                  />
+                  <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">Estimated Cost (₹)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant">₹</span>
+                    <input
+                      type="number"
+                      required
+                      value={formData.cost}
+                      onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                      className="w-full bg-surface border border-outline-variant/60 rounded-xl pl-8 pr-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Maintenance Notes</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label">Maintenance Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Describe symptoms or components to inspect..."
+                  placeholder="Describe symptoms or specific components to check..."
                   rows="3"
-                  className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                  className="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                 />
               </div>
 
-              <div className="p-3 bg-surface-container-low rounded-xl text-[10px] text-on-surface-variant leading-relaxed">
-                <span>* Opening a Scheduled entry will automatically shift vehicle status to </span>
-                <span className="font-bold text-primary">'In Shop'</span>
-                <span>, removing it from active dispatcher pools.</span>
-              </div>
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-outline-variant/40">
+                <p className="text-[10px] text-on-surface-variant leading-relaxed max-w-sm">
+                  * Saving this entry will automatically update vehicle status to <span className="font-bold text-primary">'In Shop'</span>, removing it from active dispatcher pools.
+                </p>
 
-              {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
-                <button
-                  type="submit"
-                  className="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-container hover:text-on-primary-container transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer mt-4"
-                >
-                  <span className="material-symbols-outlined text-base">calendar_today</span>
-                  Log Scheduled Service
-                </button>
-              )}
+                {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/10 hover:bg-primary/95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    Finalize Log Entry
+                  </button>
+                )}
+              </div>
             </form>
           </div>
-
-          {/* Vehicle Reference details card */}
-          {selectedVehicle && (
-            <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 bg-surface-container text-on-surface-variant rounded-full">
-                <span className="material-symbols-outlined text-2xl">local_shipping</span>
-              </div>
-              <div className="text-xs">
-                <h4 className="font-bold text-on-surface">Vehicle Ref: {selectedVehicle.registration_number}</h4>
-                <p className="text-on-surface-variant mt-0.5">Odometer: {selectedVehicle.odometer?.toLocaleString()} mi</p>
-                <p className="text-on-surface-variant">Type: {selectedVehicle.transit_ops_vehicle_type?.name || 'Heavy Semi'}</p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right Side: Maintenance Logs Table */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm">
-            <h3 className="font-headline text-2xl font-bold text-on-surface border-b border-outline-variant/40 pb-4 mb-6">
-              Maintenance Audit Trail
-            </h3>
+        {/* Right Side: Recent Records List (spans 1 column) */}
+        <div className="lg:col-span-1 space-y-6 text-xs">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4">
+              <h3 className="font-headline text-lg font-bold text-on-surface">Recent Records</h3>
+              <button className="text-xs font-bold text-primary hover:underline">Export PDF</button>
+            </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto max-h-[500px] pr-1">
               {logs.length === 0 ? (
-                <p className="text-center py-8 text-xs text-on-surface-variant font-medium">
+                <p className="text-center py-8 text-on-surface-variant font-medium">
                   No maintenance records logged in fleet history.
                 </p>
               ) : (
                 logs.map((log) => {
                   let badgeColor = 'bg-surface-container text-on-surface-variant border border-outline-variant/30';
-                  if (log.state === 'Scheduled') badgeColor = 'bg-secondary-container text-on-secondary-container border border-outline-variant/40';
-                  if (log.state === 'Open') badgeColor = 'bg-blue-50 text-blue-700 border border-blue-150';
-                  if (log.state === 'Closed') badgeColor = 'bg-green-50 text-green-700 border border-green-150';
+                  let logStateLabel = log.state;
+                  if (log.state === 'Scheduled') {
+                    badgeColor = 'bg-blue-50 text-blue-800 border border-blue-100';
+                    logStateLabel = 'SCHEDULED';
+                  }
+                  if (log.state === 'Open') {
+                    badgeColor = 'bg-orange-50 text-orange-800 border border-orange-100';
+                    logStateLabel = 'IN SHOP / IN PROGRESS';
+                  }
+                  if (log.state === 'Closed') {
+                    badgeColor = 'bg-rose-50 text-rose-800 border border-rose-100';
+                    logStateLabel = 'COMPLETED';
+                  }
 
                   return (
-                    <div key={log.id} className="p-4 rounded-2xl border border-outline-variant/40 hover:bg-surface-container-low transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        <div className="p-2.5 bg-surface-container text-on-surface-variant rounded-xl shrink-0 mt-0.5">
-                          <span className="material-symbols-outlined text-lg">build</span>
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-on-surface">{log.transit_ops_vehicle?.registration_number}</span>
-                            <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${badgeColor}`}>{log.state}</span>
-                          </div>
-                          <p className="font-semibold text-on-surface-variant">Service: {log.transit_ops_maintenance_type?.name}</p>
-                          {log.notes && <p className="text-on-surface-variant italic">"{log.notes}"</p>}
-                          <p className="text-[10px] text-on-surface-variant font-medium">Logged Date: {new Date(log.scheduled_date).toLocaleDateString()}</p>
+                    <div key={log.id} className="bg-surface-container-low/70 hover:bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 space-y-3 transition-colors relative group">
+                      
+                      {/* Top Row: State and Date */}
+                      <div className="flex justify-between items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full font-extrabold text-[8px] tracking-wider ${badgeColor}`}>
+                          {logStateLabel}
+                        </span>
+                        <span className="text-[10px] text-on-surface-variant font-medium">
+                          {new Date(log.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+                        </span>
+                      </div>
+
+                      {/* Info details */}
+                      <div>
+                        <h4 className="font-bold text-on-surface text-sm">
+                          {log.transit_ops_vehicle?.vehicle_name || 'Vehicle'} #{log.transit_ops_vehicle?.registration_number}
+                        </h4>
+                        {log.notes && <p className="text-on-surface-variant mt-1 text-[11px] leading-relaxed">"{log.notes}"</p>}
+                      </div>
+
+                      {/* Cost and Actions */}
+                      <div className="flex justify-between items-end pt-2 border-t border-outline-variant/20">
+                        <p className="font-bold text-on-surface text-xs">₹{parseFloat(log.cost || 0).toLocaleString()}</p>
+                        
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+                            <>
+                              {log.state === 'Scheduled' && (
+                                <button
+                                  onClick={() => handleOpenLog(log.id)}
+                                  className="p-1 hover:bg-primary/10 text-primary rounded transition-colors"
+                                  title="Start Service"
+                                >
+                                  <span className="material-symbols-outlined text-sm">play_arrow</span>
+                                </button>
+                              )}
+                              {log.state === 'Open' && (
+                                <button
+                                  onClick={() => handleCloseLog(log.id)}
+                                  className="p-1 hover:bg-green-700/10 text-green-700 rounded transition-colors"
+                                  title="Complete Service"
+                                >
+                                  <span className="material-symbols-outlined text-sm">check</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteLog(log.id)}
+                                className="p-1 hover:bg-tertiary-container/30 text-on-surface-variant hover:text-tertiary rounded transition-colors"
+                                title="Delete Record"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            </>
+                          )}
+                          <span className="material-symbols-outlined text-outline text-lg">article</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 border-outline-variant/30 pt-3 md:pt-0">
-                        <div className="text-right text-xs">
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label">Service Cost</p>
-                          <p className="font-headline text-lg font-bold text-on-surface">${parseFloat(log.cost || 0).toLocaleString()}</p>
-                        </div>
-
-                        {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
-                          <div className="flex items-center gap-2 shrink-0">
-                            {log.state === 'Scheduled' && (
-                              <button
-                                onClick={() => handleOpenLog(log.id)}
-                                className="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <span className="material-symbols-outlined text-xs">play_arrow</span>
-                                Start Service
-                              </button>
-                            )}
-
-                            {log.state === 'Open' && (
-                              <button
-                                onClick={() => handleCloseLog(log.id)}
-                                className="px-3 py-1 bg-green-700 text-white text-[10px] font-bold rounded-lg hover:bg-green-800 transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <span className="material-symbols-outlined text-xs">check</span>
-                                Close Log
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => handleDeleteLog(log.id)}
-                              className="p-1 hover:bg-tertiary-container/30 text-on-surface-variant hover:text-tertiary rounded-lg transition-colors"
-                              title="Delete Record"
-                            >
-                              <span className="material-symbols-outlined text-base">delete</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   );
                 })
@@ -350,6 +402,7 @@ export default function Maintenance() {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

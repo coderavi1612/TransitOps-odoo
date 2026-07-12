@@ -2,34 +2,34 @@
 const initMockDB = () => {
   if (!sessionStorage.getItem('mock_initialized')) {
     const defaultVehicles = [
-      { id: 1, name: 'Atlas-01', registration_number: 'SA-7614-TR', vehicle_name: 'Atlas Prime G2', manufacturer: 'Atlas Trucks', vehicle_model: '2025', capacity: 15000, odometer: 12450, acquisition_cost: 45000, status: 'Available', vehicle_type_id: 1, region_id: 1, transit_ops_vehicle_type: { name: 'Heavy Truck' }, transit_ops_region: { name: 'North' } },
-      { id: 2, name: 'Swift-02', registration_number: 'SA-2290-VN', vehicle_name: 'Swift Cargo EV', manufacturer: 'Linen Motors', vehicle_model: '2026', capacity: 4500, odometer: 8120, acquisition_cost: 32000, status: 'On Trip', vehicle_type_id: 2, region_id: 2, transit_ops_vehicle_type: { name: 'Van' }, transit_ops_region: { name: 'South' } },
-      { id: 3, name: 'Sentry-03', registration_number: 'SA-9011-CR', vehicle_name: 'Urban Sentry X', manufacturer: 'EcoFlow', vehicle_model: '2024', capacity: 1200, odometer: 21400, acquisition_cost: 18000, status: 'In Shop', vehicle_type_id: 3, region_id: 3, transit_ops_vehicle_type: { name: 'Car' }, transit_ops_region: { name: 'East' } }
+      { id: 1, name: 'Atlas-01', registration_number: 'MH-12-AB-7614', vehicle_name: 'Atlas Prime G2', manufacturer: 'Atlas Trucks', vehicle_model: '2025', capacity: 15000, odometer: 12450, acquisition_cost: 45000, status: 'Available', vehicle_type_id: 5, region_id: 1, transit_ops_vehicle_type: { name: 'Heavy Truck' }, transit_ops_region: { name: 'Maharashtra' } },
+      { id: 2, name: 'Swift-02', registration_number: 'KA-03-MX-2290', vehicle_name: 'Swift Cargo EV', manufacturer: 'Linen Motors', vehicle_model: '2026', capacity: 4500, odometer: 8120, acquisition_cost: 32000, status: 'On Trip', vehicle_type_id: 1, region_id: 2, transit_ops_vehicle_type: { name: 'Cargo Van' }, transit_ops_region: { name: 'Karnataka' } },
+      { id: 3, name: 'Sentry-03', registration_number: 'DL-01-CY-9011', vehicle_name: 'Urban Sentry X', manufacturer: 'EcoFlow', vehicle_model: '2024', capacity: 1200, odometer: 21400, acquisition_cost: 18000, status: 'In Shop', vehicle_type_id: 3, region_id: 3, transit_ops_vehicle_type: { name: 'Light Commercial Vehicle (LCV)' }, transit_ops_region: { name: 'Tamil Nadu' } }
     ];
 
     const defaultDrivers = [
-      { id: 1, name: 'Marcus Sterling', phone: '+1 (555) 012-9842', email: 'm.sterling@sahara.com', license_number: 'A-99812-HGV', license_expiry_date: '2027-10-12', safety_score: 98, status: 'Available', region_id: 1, transit_ops_region: { name: 'North' } },
-      { id: 2, name: 'Elena Rodriguez', phone: '+1 (555) 019-3321', email: 'e.rodriguez@sahara.com', license_number: 'B-77211-CDL', license_expiry_date: '2028-02-04', safety_score: 95, status: 'On Trip', region_id: 2, transit_ops_region: { name: 'South' } },
-      { id: 3, name: 'Albert Hoffman', phone: '+1 (555) 022-7741', email: 'a.hoffman@sahara.com', license_number: 'B-88319-CDL', license_expiry_date: '2025-08-19', safety_score: 87, status: 'Off Duty', region_id: 3, transit_ops_region: { name: 'East' } },
-      { id: 4, name: 'Julian Vance', phone: '+1 (555) 091-8843', email: 'j.vance@sahara.com', license_number: 'A-11002-HGV', license_expiry_date: '2026-11-22', safety_score: 62, status: 'Suspended', region_id: 4, transit_ops_region: { name: 'West' } }
+      { id: 1, name: 'Marcus Sterling', phone: '+91 98765 43210', email: 'm.sterling@transitops.in', license_number: 'A-99812-HGV', license_expiry_date: '2027-10-12', safety_score: 98, status: 'Available', region_id: 1, avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', transit_ops_region: { name: 'Maharashtra' } },
+      { id: 2, name: 'Elena Rodriguez', phone: '+91 91234 56789', email: 'e.rodriguez@transitops.in', license_number: 'B-77211-CDL', license_expiry_date: '2028-02-04', safety_score: 95, status: 'On Trip', region_id: 2, avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', transit_ops_region: { name: 'Karnataka' } },
+      { id: 3, name: 'Albert Hoffman', phone: '+91 90123 45678', email: 'a.hoffman@transitops.in', license_number: 'B-88319-CDL', license_expiry_date: '2025-08-19', safety_score: 87, status: 'Off Duty', region_id: 3, avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80', transit_ops_region: { name: 'Tamil Nadu' } },
+      { id: 4, name: 'Julian Vance', phone: '+91 88888 77777', email: 'j.vance@transitops.in', license_number: 'A-11002-HGV', license_expiry_date: '2026-11-22', safety_score: 62, status: 'Suspended', region_id: 4, avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', transit_ops_region: { name: 'Delhi' } }
     ];
 
     const defaultTrips = [
-      { id: 1, name: 'TRP-8842', source: 'North Region Hub', destination: 'Las Vegas', cargo_weight: 12400, planned_distance: 297, start_odometer: 12153, state: 'Dispatched', vehicle_id: 2, driver_id: 2, region_id: 1, transit_ops_vehicle: { registration_number: 'SA-2290-VN', vehicle_name: 'Swift Cargo EV' }, transit_ops_driver: { name: 'Elena Rodriguez' }, transit_ops_region: { name: 'North' } },
-      { id: 2, name: 'TRP-8839', source: 'South Region Hub', destination: 'San Diego', cargo_weight: 8200, planned_distance: 410, start_odometer: 7710, end_odometer: 8120, actual_distance: 410, state: 'Completed', vehicle_id: 1, driver_id: 1, region_id: 2, transit_ops_vehicle: { registration_number: 'SA-7614-TR', vehicle_name: 'Atlas Prime G2' }, transit_ops_driver: { name: 'Marcus Sterling' }, transit_ops_region: { name: 'South' } }
+      { id: 1, name: 'TRP-8842', source: 'Maharashtra Region Hub', destination: 'Mumbai Central', cargo_weight: 12400, planned_distance: 297, start_odometer: 12153, state: 'Dispatched', vehicle_id: 2, driver_id: 2, region_id: 1, transit_ops_vehicle: { registration_number: 'KA-03-MX-2290', vehicle_name: 'Swift Cargo EV' }, transit_ops_driver: { name: 'Elena Rodriguez' }, transit_ops_region: { name: 'Maharashtra' } },
+      { id: 2, name: 'TRP-8839', source: 'Karnataka Region Hub', destination: 'Bengaluru Layout', cargo_weight: 8200, planned_distance: 410, start_odometer: 7710, end_odometer: 8120, actual_distance: 410, state: 'Completed', vehicle_id: 1, driver_id: 1, region_id: 2, transit_ops_vehicle: { registration_number: 'MH-12-AB-7614', vehicle_name: 'Atlas Prime G2' }, transit_ops_driver: { name: 'Marcus Sterling' }, transit_ops_region: { name: 'Karnataka' } }
     ];
 
     const defaultMaintenance = [
-      { id: 1, vehicle_id: 3, maintenance_type_id: 2, state: 'Open', scheduled_date: '2026-07-12', cost: 840.50, notes: 'Transmission fluid flush & filter replacement', transit_ops_vehicle: { registration_number: 'SA-9011-CR', vehicle_name: 'Urban Sentry X' }, transit_ops_maintenance_type: { name: 'Engine Repair' } },
-      { id: 2, vehicle_id: 1, maintenance_type_id: 3, state: 'Closed', scheduled_date: '2026-06-22', cost: 125.00, notes: 'Front tire realignment and safety tread depth analysis', transit_ops_vehicle: { registration_number: 'SA-7614-TR', vehicle_name: 'Atlas Prime G2' }, transit_ops_maintenance_type: { name: 'Tire Rotation' } }
+      { id: 1, vehicle_id: 3, maintenance_type_id: 2, state: 'Open', scheduled_date: '2026-07-12', cost: 840.50, notes: 'Transmission fluid flush & filter replacement', transit_ops_vehicle: { registration_number: 'DL-01-CY-9011', vehicle_name: 'Urban Sentry X' }, transit_ops_maintenance_type: { name: 'Engine Repair' } },
+      { id: 2, vehicle_id: 1, maintenance_type_id: 3, state: 'Closed', scheduled_date: '2026-06-22', cost: 125.00, notes: 'Front tire realignment and safety tread depth analysis', transit_ops_vehicle: { registration_number: 'MH-12-AB-7614', vehicle_name: 'Atlas Prime G2' }, transit_ops_maintenance_type: { name: 'Tire Rotation' } }
     ];
 
     const defaultFuel = [
-      { id: 1, vehicle_id: 1, date: '2026-07-10', litres: 82.0, cost: 113.16, odometer: 12450, fuel_efficiency: 14.2, transit_ops_vehicle: { registration_number: 'SA-7614-TR' } }
+      { id: 1, vehicle_id: 1, date: '2026-07-10', litres: 82.0, cost: 113.16, odometer: 12450, fuel_efficiency: 14.2, transit_ops_vehicle: { registration_number: 'MH-12-AB-7614' } }
     ];
 
     const defaultExpenses = [
-      { id: 1, vehicle_id: 1, amount: 12.50, date: '2026-07-11', notes: 'Interstate Passage Automated toll fee', transit_ops_expense_category: { name: 'Tolls', category_type: 'Toll' }, transit_ops_vehicle: { registration_number: 'SA-7614-TR' } }
+      { id: 1, vehicle_id: 1, amount: 12.50, date: '2026-07-11', notes: 'Interstate Passage Automated toll fee', transit_ops_expense_category: { name: 'Tolls', category_type: 'Toll' }, transit_ops_vehicle: { registration_number: 'MH-12-AB-7614' } }
     ];
 
     sessionStorage.setItem('mock_vehicles', JSON.stringify(defaultVehicles));
@@ -98,18 +98,30 @@ function handleMockRequest(method, path, body) {
 
   // Config tables
   if (cleanPath.startsWith('/api/config/regions')) {
-    return [
-      { id: 1, name: 'North', active: true },
-      { id: 2, name: 'South', active: true },
-      { id: 3, name: 'East', active: true },
-      { id: 4, name: 'West', active: true }
+    const states = [
+      'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+      'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+      'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+      'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+      'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+      'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'All Over India'
     ];
+    return states.map((name, index) => ({
+      id: index + 1,
+      name,
+      active: true
+    }));
   }
   if (cleanPath.startsWith('/api/config/vehicle_types')) {
     return [
-      { id: 1, name: 'Heavy Truck', default_capacity: 15000 },
-      { id: 2, name: 'Van', default_capacity: 4500 },
-      { id: 3, name: 'Car', default_capacity: 1200 }
+      { id: 1, name: 'Cargo Van', default_capacity: 4500 },
+      { id: 2, name: 'Mini Truck', default_capacity: 2500 },
+      { id: 3, name: 'Light Commercial Vehicle (LCV)', default_capacity: 6000 },
+      { id: 4, name: 'Medium Truck', default_capacity: 12000 },
+      { id: 5, name: 'Heavy Truck', default_capacity: 25000 },
+      { id: 6, name: 'Trailer', default_capacity: 40000 },
+      { id: 7, name: 'Refrigerated Truck (Reefer)', default_capacity: 20000 },
+      { id: 8, name: 'Tanker', default_capacity: 30000 }
     ];
   }
   if (cleanPath.startsWith('/api/config/maintenance_types')) {
@@ -138,9 +150,27 @@ function handleMockRequest(method, path, body) {
 
   // Dashboard KPIs
   if (cleanPath.startsWith('/api/dashboard/kpis')) {
-    const vehicles = getTable('vehicles');
-    const drivers = getTable('drivers');
-    const trips = getTable('trips');
+    const queryStr = path.includes('?') ? path.split('?')[1] : '';
+    const params = new URLSearchParams(queryStr);
+    const region = params.get('region') || 'All';
+    const type = params.get('type') || 'All';
+
+    let vehicles = getTable('vehicles');
+    let drivers = getTable('drivers');
+    let trips = getTable('trips');
+
+    if (region !== 'All') {
+      vehicles = vehicles.filter(v => v.transit_ops_region?.name === region || v.region_id === parseInt(region));
+      drivers = drivers.filter(d => d.transit_ops_region?.name === region || d.region_id === parseInt(region));
+      trips = trips.filter(t => t.transit_ops_region?.name === region || t.region_id === parseInt(region));
+    }
+
+    if (type !== 'All') {
+      const typeId = parseInt(type);
+      vehicles = vehicles.filter(v => v.vehicle_type_id === typeId);
+      trips = trips.filter(t => t.transit_ops_vehicle?.vehicle_type_id === typeId || t.vehicle_id === typeId);
+    }
+
     return {
       active_vehicles: vehicles.filter(v => v.status !== 'Retired').length,
       available_vehicles: vehicles.filter(v => v.status === 'Available').length,
@@ -178,11 +208,32 @@ function handleMockRequest(method, path, body) {
   }
   if (cleanPath === '/api/vehicles' && method === 'POST') {
     const table = getTable('vehicles');
+    const types = [
+      { id: 1, name: 'Cargo Van' },
+      { id: 2, name: 'Mini Truck' },
+      { id: 3, name: 'Light Commercial Vehicle (LCV)' },
+      { id: 4, name: 'Medium Truck' },
+      { id: 5, name: 'Heavy Truck' },
+      { id: 6, name: 'Trailer' },
+      { id: 7, name: 'Refrigerated Truck (Reefer)' },
+      { id: 8, name: 'Tanker' }
+    ];
+    const states = [
+      'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+      'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+      'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+      'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+      'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+      'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'All Over India'
+    ];
+    const typeObj = types.find(t => t.id === parseInt(body.vehicle_type_id));
+    const regionName = states[parseInt(body.region_id) - 1] || 'All Over India';
+
     const newVehicle = {
       id: Date.now(),
       ...body,
-      transit_ops_vehicle_type: { name: body.vehicle_type_id === 1 ? 'Heavy Truck' : body.vehicle_type_id === 2 ? 'Van' : 'Car' },
-      transit_ops_region: { name: body.region_id === 1 ? 'North' : 'South' }
+      transit_ops_vehicle_type: { name: typeObj ? typeObj.name : 'Heavy Truck' },
+      transit_ops_region: { name: regionName }
     };
     table.push(newVehicle);
     saveTable('vehicles', table);

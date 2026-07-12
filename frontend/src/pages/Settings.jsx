@@ -3,7 +3,17 @@ import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
-  const { hasRole } = useAuth();
+  const { hasRole, profile, user, logout, roles: userRoles } = useAuth();
+  
+  const formatRole = () => {
+    if (!userRoles) return 'User';
+    if (userRoles.includes('admin')) return 'Administrator';
+    if (userRoles.includes('fleet_manager')) return 'Manager';
+    if (userRoles.includes('driver')) return 'Driver';
+    if (userRoles.includes('safety_officer')) return 'Safety';
+    if (userRoles.includes('financial_analyst')) return 'Analyst';
+    return userRoles[0] || 'User';
+  };
   
   const [rolesList, setRolesList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,220 +72,305 @@ export default function Settings() {
 
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
-      {/* Sub Tabs */}
-      <div className="flex border-b border-outline-variant/60 gap-4 mb-6">
-        <button
-          onClick={() => setActiveTab('platform')}
-          className={`pb-3 text-xs font-bold uppercase tracking-wider font-label transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'platform' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'
-          }`}
-        >
-          Platform Settings
-        </button>
-        <button
-          onClick={() => setActiveTab('integrations')}
-          className={`pb-3 text-xs font-bold uppercase tracking-wider font-label transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'integrations' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'
-          }`}
-        >
-          Integrations
-        </button>
-        <button
-          onClick={() => setActiveTab('billing')}
-          className={`pb-3 text-xs font-bold uppercase tracking-wider font-label transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'billing' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'
-          }`}
-        >
-          Billing
-        </button>
-      </div>
+      <div className="space-y-8">
 
-      {activeTab === 'platform' ? (
+        {/* Current User Profile Banner */}
+        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Avatar" className="w-16 h-16 rounded-full object-cover border border-outline-variant" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-xl">
+                {(profile?.full_name || 'F').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <span className="px-2.5 py-0.5 bg-primary-container text-on-primary-container text-[9px] font-bold rounded-md border border-primary/10 uppercase tracking-wider">
+                {formatRole()}
+              </span>
+              <h3 className="font-headline text-xl font-bold text-on-surface mt-1">{profile?.full_name || 'Fleet Operator'}</h3>
+              <p className="text-xs text-on-surface-variant font-medium mt-0.5">{user?.email || 'operator@transitops.com'}</p>
+            </div>
+          </div>
+          <button 
+            onClick={logout}
+            className="px-4 py-2 border border-tertiary/60 rounded-xl text-xs font-bold text-tertiary hover:bg-tertiary-container hover:text-on-tertiary-container flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">logout</span>
+            Log Out
+          </button>
+        </div>
+        
+        {/* Top Section: Role-Based Access Control (Full Width) */}
+        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm">
+          <div className="flex flex-wrap justify-between items-center border-b border-outline-variant/40 pb-4 mb-6 gap-4">
+            <div>
+              <h3 className="font-headline text-2xl font-bold text-on-surface">Role-Based Access Control</h3>
+              <p className="text-xs text-on-surface-variant font-medium mt-0.5">Define permissions for your dispatching and management teams.</p>
+            </div>
+            {hasRole(['admin']) && (
+              <button className="bg-primary text-white text-xs font-bold pl-4 pr-5 py-2.5 rounded-xl shadow-lg shadow-primary/10 hover:bg-primary/95 transition-all flex items-center gap-1.5 cursor-pointer">
+                <span className="material-symbols-outlined text-base">person_add</span>
+                Create New Role
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-x-auto text-xs">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-outline-variant/60 bg-surface-container-low text-left text-on-surface-variant font-bold uppercase tracking-wider font-label">
+                  <th className="px-6 py-3">Role Name</th>
+                  <th className="px-6 py-3">Access Level</th>
+                  <th className="px-6 py-3">Users</th>
+                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/40">
+                {/* Row 1: Fleet Manager */}
+                <tr className="hover:bg-surface-container-low transition-colors">
+                  <td className="px-6 py-4 flex items-center gap-4">
+                    <div className="p-2.5 bg-orange-50 text-orange-800 rounded-xl border border-orange-100 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-lg">shield</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-on-surface text-sm">Fleet Manager</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Full system authority</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-[#2D2D2D] text-white px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider">
+                      Owner
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center -space-x-2 overflow-hidden">
+                      <div className="w-6 h-6 rounded-full bg-[#E5DFD9] border-2 border-surface flex items-center justify-center" />
+                      <div className="w-6 h-6 rounded-full bg-[#D8D0C7] border-2 border-surface flex items-center justify-center" />
+                      <div className="w-6 h-6 rounded-full bg-rose-50 text-rose-800 border-2 border-surface text-[8px] font-bold flex items-center justify-center shadow-sm shrink-0">
+                        +2
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Active
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                      <span className="material-symbols-outlined text-base">edit</span>
+                    </button>
+                  </td>
+                </tr>
+
+                {/* Row 2: Trip Dispatcher */}
+                <tr className="hover:bg-surface-container-low transition-colors">
+                  <td className="px-6 py-4 flex items-center gap-4">
+                    <div className="p-2.5 bg-surface-container text-on-surface-variant rounded-xl border border-outline-variant/30 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-lg">conversion_path</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-on-surface text-sm">Trip Dispatcher</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Routing and Driver management</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-[#7B7B7B] text-white px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider">
+                      Standard
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center -space-x-2 overflow-hidden">
+                      <div className="w-6 h-6 rounded-full bg-[#E5DFD9] border-2 border-surface flex items-center justify-center" />
+                      <div className="w-6 h-6 rounded-full bg-[#D8D0C7] border-2 border-surface flex items-center justify-center" />
+                      <div className="w-6 h-6 rounded-full bg-[#C8BEB2] border-2 border-surface flex items-center justify-center" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Active
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                      <span className="material-symbols-outlined text-base">edit</span>
+                    </button>
+                  </td>
+                </tr>
+
+                {/* Row 3: Auditor / Viewer */}
+                <tr className="hover:bg-surface-container-low transition-colors">
+                  <td className="px-6 py-4 flex items-center gap-4">
+                    <div className="p-2.5 bg-surface-container text-on-surface-variant rounded-xl border border-outline-variant/30 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-lg">visibility</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-on-surface text-sm">Auditor / Viewer</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Read-only report access</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-[#A3A3A3] text-white px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider">
+                      Restricted
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center -space-x-2 overflow-hidden">
+                      <div className="w-6 h-6 rounded-full bg-[#E5DFD9] border-2 border-surface flex items-center justify-center" />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant">
+                      <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
+                      Inherited
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                      <span className="material-symbols-outlined text-base">edit</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Bottom Grid: System Units & Smart Notifications */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Columns: RBAC Permissions */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm">
-              <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4 mb-6 flex-wrap gap-4">
-                <div>
-                  <h3 className="font-headline text-2xl font-bold text-on-surface">Role-Based Access Control</h3>
-                  <p className="text-xs text-on-surface-variant font-medium mt-0.5">Define platform permissions for your operations teams.</p>
+          
+          {/* Column 1: System Units (1/3 width) */}
+          <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="p-2.5 bg-rose-50 text-rose-800 rounded-xl border border-rose-100 flex items-center justify-center w-fit">
+                <span className="material-symbols-outlined text-lg">square_foot</span>
+              </div>
+              <div>
+                <h3 className="font-headline text-2xl font-bold text-on-surface">System Units</h3>
+                <p className="text-xs text-on-surface-variant font-medium mt-1 leading-relaxed">
+                  Configure global measurement standards for all logistics calculations.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mt-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Distance</label>
+                <select
+                  value={distanceUnit}
+                  onChange={(e) => setDistanceUnit(e.target.value)}
+                  className="w-full bg-[#F5EFE9] border border-outline-variant/60 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface font-bold cursor-pointer"
+                >
+                  <option value="mi">Miles (mi)</option>
+                  <option value="km">Kilometers (km)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Weight</label>
+                <select
+                  value={weightUnit}
+                  onChange={(e) => setWeightUnit(e.target.value)}
+                  className="w-full bg-[#F5EFE9] border border-outline-variant/60 rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface font-bold cursor-pointer"
+                >
+                  <option value="lb">Pounds (lb)</option>
+                  <option value="kg">Kilograms (kg)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Smart Notifications (2/3 width) */}
+          <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-orange-50 text-orange-800 rounded-xl border border-orange-100 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-lg">notifications</span>
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-2xl font-bold text-on-surface">Smart Notifications</h3>
+                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">Control how the platform communicates critical updates.</p>
+                  </div>
                 </div>
-                {hasRole(['admin']) && (
-                  <button className="bg-primary text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-container hover:text-on-primary-container transition-all flex items-center gap-1.5 cursor-pointer">
-                    <span className="material-symbols-outlined text-base">person_add</span>
-                    Create Role
+                <button 
+                  onClick={() => setNotifications({ pushAlerts: true, emailSummaries: false, smsDispatch: true, slackSync: true })}
+                  className="px-4 py-2 border border-outline rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container cursor-pointer transition-colors"
+                >
+                  Reset Defaults
                   </button>
-                )}
               </div>
 
-              <div className="overflow-x-auto text-xs">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-outline-variant/60 bg-surface-container-low text-left">
-                      <th className="px-4 py-3 font-bold text-on-surface-variant uppercase tracking-wider font-label">Role Name</th>
-                      <th className="px-4 py-3 font-bold text-on-surface-variant uppercase tracking-wider font-label">Security Level</th>
-                      <th className="px-4 py-3 font-bold text-on-surface-variant uppercase tracking-wider font-label">Active Users</th>
-                      <th className="px-4 py-3 font-bold text-on-surface-variant uppercase tracking-wider font-label">Status</th>
-                      <th className="px-4 py-3 font-bold text-on-surface-variant uppercase tracking-wider font-label text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant/40">
-                    {roles.map((role) => (
-                      <tr key={role.id} className="hover:bg-surface-container-low transition-colors">
-                        <td className="px-4 py-4 flex items-center gap-2.5">
-                          <span className="material-symbols-outlined text-outline">admin_panel_settings</span>
-                          <div>
-                            <p className="font-bold text-on-surface">{role.name}</p>
-                            <p className="text-[10px] text-on-surface-variant mt-0.5">Full operational authority</p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 font-semibold text-on-surface">{role.access || 'Standard'}</td>
-                        <td className="px-4 py-4 font-semibold text-on-surface">{role.users || 0} Operators</td>
-                        <td className="px-4 py-4">
-                          <span className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-150 rounded-full font-semibold text-[10px]">
-                            {role.active ? 'Active' : 'Disabled'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <button className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined">edit</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pt-2">
+                {/* Toggle 1: Push Alerts */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">Push Alerts</p>
+                    <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Real-time browser notifications</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleNotificationChange('pushAlerts')}
+                    className={`w-11 h-6 rounded-full p-1 transition-colors ${notifications.pushAlerts ? 'bg-[#C2622A]' : 'bg-[#DCD5CD]'} cursor-pointer flex items-center`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${notifications.pushAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* Toggle 2: SMS Dispatch */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">SMS Dispatch</p>
+                    <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Critical delay text alerts</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleNotificationChange('smsDispatch')}
+                    className={`w-11 h-6 rounded-full p-1 transition-colors ${notifications.smsDispatch ? 'bg-[#C2622A]' : 'bg-[#DCD5CD]'} cursor-pointer flex items-center`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${notifications.smsDispatch ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* Toggle 3: Email Summaries */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">Email Summaries</p>
+                    <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Weekly performance insights</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleNotificationChange('emailSummaries')}
+                    className={`w-11 h-6 rounded-full p-1 transition-colors ${notifications.emailSummaries ? 'bg-[#C2622A]' : 'bg-[#DCD5CD]'} cursor-pointer flex items-center`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${notifications.emailSummaries ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* Toggle 4: Slack Sync */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">Slack Sync</p>
+                    <p className="text-[10px] text-on-surface-variant font-medium mt-0.5">Enterprise channel relay</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleNotificationChange('slackSync')}
+                    className={`w-11 h-6 rounded-full p-1 transition-colors ${notifications.slackSync ? 'bg-[#C2622A]' : 'bg-[#DCD5CD]'} cursor-pointer flex items-center`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${notifications.slackSync ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Columns: Configurations */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* System Units */}
-            <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm space-y-4">
-              <h4 className="font-headline text-xl font-bold text-on-surface flex items-center gap-2 border-b border-outline-variant/40 pb-3">
-                <span className="material-symbols-outlined text-primary text-xl">square_foot</span>
-                System Units
-              </h4>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                Configure global measurement standards used across trips, dispatcher calculations, and metrics.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Distance</label>
-                  <select
-                    value={distanceUnit}
-                    onChange={(e) => setDistanceUnit(e.target.value)}
-                    className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                  >
-                    <option value="mi">Miles (mi)</option>
-                    <option value="km">Kilometers (km)</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Weight</label>
-                  <select
-                    value={weightUnit}
-                    onChange={(e) => setWeightUnit(e.target.value)}
-                    className="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
-                  >
-                    <option value="lb">Pounds (lb)</option>
-                    <option value="kg">Kilograms (kg)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Smart Notifications */}
-            <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-outline-variant/40 pb-3">
-                <h4 className="font-headline text-xl font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-xl">notifications_active</span>
-                  Notifications
-                </h4>
-                <button className="text-[10px] font-bold text-primary hover:underline">Reset</button>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <label className="flex items-center justify-between p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 cursor-pointer select-none">
-                  <div>
-                    <p className="text-xs font-bold text-on-surface">Push Alerts</p>
-                    <p className="text-[10px] text-on-surface-variant mt-0.5">Real-time browser notifications</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifications.pushAlerts}
-                    onChange={() => handleNotificationChange('pushAlerts')}
-                    className="w-4 h-4 rounded border-outline text-primary focus:ring-primary accent-primary"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 cursor-pointer select-none">
-                  <div>
-                    <p className="text-xs font-bold text-on-surface">Email Summaries</p>
-                    <p className="text-[10px] text-on-surface-variant mt-0.5">Weekly performance analysis</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifications.emailSummaries}
-                    onChange={() => handleNotificationChange('emailSummaries')}
-                    className="w-4 h-4 rounded border-outline text-primary focus:ring-primary accent-primary"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 cursor-pointer select-none">
-                  <div>
-                    <p className="text-xs font-bold text-on-surface">SMS Dispatch Texts</p>
-                    <p className="text-[10px] text-on-surface-variant mt-0.5">Critical delay mobile updates</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifications.smsDispatch}
-                    onChange={() => handleNotificationChange('smsDispatch')}
-                    className="w-4 h-4 rounded border-outline text-primary focus:ring-primary accent-primary"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 cursor-pointer select-none">
-                  <div>
-                    <p className="text-xs font-bold text-on-surface">Slack Workspace Sync</p>
-                    <p className="text-[10px] text-on-surface-variant mt-0.5">Automated operations relay</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifications.slackSync}
-                    onChange={() => handleNotificationChange('slackSync')}
-                    className="w-4 h-4 rounded border-outline text-primary focus:ring-primary accent-primary"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Danger Zone */}
-            <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm space-y-4">
-              <h4 className="font-headline text-xl font-bold text-tertiary flex items-center gap-2 border-b border-outline-variant/40 pb-3">
-                <span className="material-symbols-outlined text-tertiary text-xl">shield</span>
-                Data Integrity
-              </h4>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                Archiving or deleting system databases will remove historical logs and dispatch manifests permanently.
-              </p>
-              {hasRole(['admin']) && (
-                <button className="w-full bg-tertiary-container/30 hover:bg-tertiary text-tertiary hover:text-white font-bold py-3 rounded-xl text-xs transition-all cursor-pointer">
-                  Archive Historical logs
-                </button>
-              )}
-            </div>
-          </div>
         </div>
-      ) : (
-        <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/60 shadow-sm text-center py-12">
-          <span className="material-symbols-outlined text-primary text-5xl mb-4">construction</span>
-          <h3 className="font-headline text-2xl font-bold text-on-surface">Settings Module</h3>
-          <p className="text-on-surface-variant text-xs mt-2">The selected settings tab is currently undergoing alignment.</p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

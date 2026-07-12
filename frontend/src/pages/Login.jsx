@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import loginBg from '../assets/login_bg.png';
 
 export default function Login() {
   const { login, signup } = useAuth();
@@ -36,14 +37,16 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative w-full overflow-hidden">
-      {/* Background Map Texture */}
+      {/* Background Desert Image */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div 
-          className="w-full h-full bg-cover bg-center scale-110 opacity-40 dark:opacity-20"
+          className="w-full h-full bg-cover bg-center scale-105 opacity-85"
           style={{
-            backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAn5lPTMomJBkI9uPSW-thGTmXuordoMmZ6ZrUrmEy6dZqwLjOXnCQct2EoRDqpZycPmDdh-qkl0e8AspizTwDssBGhTP_UIFkS9I4oN5_fWHKCA90isS616p3ECnWirM3B9cd7czbE8ZCW1FlX0eiYkgwCafM2C8tFybF9HAvKe-sAIagcKhn8b7vEqXQ8JUJTDAPA4Kb43r7N8s_JXrcbLOsFewZLaoxGewYl8INIHXAqEnm3Uu5FXA')"
+            backgroundImage: `url(${loginBg})`
           }}
-        ></div>
+        />
+        {/* Soft overlay gradient to ensure high readability */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-background/90 via-background/45 to-transparent" />
       </div>
 
       {/* Main Content Canvas */}

@@ -163,7 +163,7 @@ export default function Vehicles() {
   return (
     <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-primary-fixed text-primary rounded-xl">
             <span className="material-symbols-outlined">local_shipping</span>
@@ -193,18 +193,6 @@ export default function Vehicles() {
             <p className="font-headline text-3xl font-bold text-on-surface mt-0.5">{inShopCount}</p>
           </div>
         </div>
-
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary-fixed text-primary rounded-xl">
-              <span className="material-symbols-outlined">star</span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-primary uppercase tracking-wider font-label">Fleet Efficiency</p>
-              <p className="font-headline text-2xl font-bold text-on-surface mt-0.5">+14% Growth</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Filters & Search */}
@@ -227,7 +215,7 @@ export default function Vehicles() {
               onChange={(e) => setFilterRegion(e.target.value)}
               className="pl-4 pr-10 py-2.5 bg-surface border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none cursor-pointer"
             >
-              <option value="All">All Regions</option>
+              <option value="All">All Over India</option>
               {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
 
@@ -309,8 +297,8 @@ export default function Vehicles() {
                         </span>
                         <span>{v.transit_ops_vehicle_type?.name || 'Heavy Truck'}</span>
                       </td>
-                      <td className="px-6 py-4.5 text-sm font-medium text-on-surface">{(v.odometer || 0).toLocaleString()} mi</td>
-                      <td className="px-6 py-4.5 text-sm font-semibold text-on-surface">${(v.acquisition_cost / 365).toFixed(2)}/day</td>
+                      <td className="px-6 py-4.5 text-sm font-medium text-on-surface">{(v.odometer || 0).toLocaleString()} km</td>
+                      <td className="px-6 py-4.5 text-sm font-semibold text-on-surface">₹{(v.acquisition_cost / 365).toFixed(2)}/day</td>
                       <td className="px-6 py-4.5">
                         <div className="w-28 space-y-1">
                           <div className="flex justify-between text-[10px] font-bold text-on-surface-variant">
@@ -379,13 +367,13 @@ export default function Vehicles() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Plate / Identifier</label>
+                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Plate / Registration Number</label>
                   <input
                     type="text"
                     required
                     value={formData.registration_number}
                     onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
-                    placeholder="SA-7614-TR"
+                    placeholder="MH-12-AB-7614"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -460,8 +448,8 @@ export default function Vehicles() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Master Odometer (mi)</label>
+                 <div className="space-y-1.5">
+                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Master Odometer (km)</label>
                   <input
                     type="number"
                     required
@@ -472,7 +460,7 @@ export default function Vehicles() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Acquisition Value ($)</label>
+                  <label className="font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Acquisition Value (₹)</label>
                   <input
                     type="number"
                     required

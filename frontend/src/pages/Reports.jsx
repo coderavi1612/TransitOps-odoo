@@ -76,8 +76,8 @@ export default function Reports() {
             <span className="material-symbols-outlined text-outline text-lg">payments</span>
           </div>
           <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-on-surface">$420.5k</p>
-            <span className="text-xs text-on-surface-variant font-medium">USD</span>
+            <p className="font-headline text-3xl font-bold text-on-surface">₹420.5k</p>
+            <span className="text-xs text-on-surface-variant font-medium">INR</span>
           </div>
           <p className="text-[10px] text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full font-bold inline-block mt-2">+5.1% efficiency</p>
         </div>
