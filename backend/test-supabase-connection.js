@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 
 const colors = {
   green: '\x1b[32m',
@@ -57,7 +58,9 @@ async function testSupabaseConnection() {
   let supabaseAdmin = null;
 
   try {
-    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+      realtime: { transport: ws }
+    });
     log.success('Public client created');
   } catch (err) {
     log.error(`Failed to create public client: ${err.message}`);
@@ -65,7 +68,9 @@ async function testSupabaseConnection() {
   }
 
   try {
-    supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      realtime: { transport: ws }
+    });
     log.success('Admin client created');
   } catch (err) {
     log.error(`Failed to create admin client: ${err.message}`);
