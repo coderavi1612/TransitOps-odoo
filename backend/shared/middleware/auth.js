@@ -1,4 +1,4 @@
-const { supabase } = require('../supabase');
+const { supabaseAdmin } = require('../supabase');
 
 async function authenticate(req, res, next) {
   const header = req.headers.authorization;
@@ -8,23 +8,48 @@ async function authenticate(req, res, next) {
 
   const token = header.slice(7);
 
-  if (!supabase) {
+  if (!supabaseAdmin) {
     return res.status(500).json({ error: 'Supabase client not configured' });
   }
 
-  const { data, error } = await supabase.auth.getUser(token);
+  try {
+    // Verify the JWT token using the public API
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-  if (error || !data?.user) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    if (userError || !userData?.user) {
+      console.error('Token verification error:', userError?.message);
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    req.user = {
+      id: userData.user.id,
+      email: userData.user.email,
+      role: userData.user.app_metadata?.role || userData.user.user_metadata?.role || null,
+    };
+    req.token = token;
+
+    // Fetch user roles from database
+    try {
+      const { data: roleData, error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', req.user.id);
+
+      if (!roleError && roleData) {
+        req.userRoles = roleData.map(r => r.role);
+      } else {
+        req.userRoles = [];
+      }
+    } catch (roleErr) {
+      console.error('Role fetch error:', roleErr.message);
+      req.userRoles = [];
+    }
+
+    next();
+  } catch (err) {
+    console.error('Authentication error:', err.message);
+    return res.status(500).json({ error: 'Authentication failed' });
   }
-
-  req.user = {
-    id: data.user.id,
-    email: data.user.email,
-    role: data.user.app_metadata?.role || data.user.user_metadata?.role || null,
-  };
-  req.token = token;
-  next();
 }
 
 module.exports = { authenticate };

@@ -35,7 +35,7 @@ const ROLE_PERMISSIONS = {
   },
   safety_officer: {
     vehicles: ['read'],
-    drivers: ['read', 'update'],
+    drivers: ['create', 'read', 'update'],
     trips: ['read'],
     maintenance: ['create', 'read', 'update'],
     fuel: ['read'],
