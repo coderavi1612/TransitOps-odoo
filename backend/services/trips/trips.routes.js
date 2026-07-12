@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   const { data, error } = await supabase
     .from('transit_ops_trip')
-    .select('*, transit_ops_vehicle(registration_number, vehicle_name), transit_ops_driver(name, license_number), transit_ops_region(name)')
+    .select('*, transit_ops_vehicle!transit_ops_trip_vehicle_id_fkey(registration_number, vehicle_name), transit_ops_driver!transit_ops_trip_driver_id_fkey(name, license_number), transit_ops_region(name)')
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
@@ -29,7 +29,7 @@ router.post('/', authenticate, requireRole('fleet_manager', 'admin'), async (req
 router.get('/:id', authenticate, async (req, res) => {
   const { data, error } = await supabase
     .from('transit_ops_trip')
-    .select('*, transit_ops_vehicle(*), transit_ops_driver(*), transit_ops_region(name)')
+    .select('*, transit_ops_vehicle!transit_ops_trip_vehicle_id_fkey(*), transit_ops_driver!transit_ops_trip_driver_id_fkey(*), transit_ops_region(name)')
     .eq('id', req.params.id)
     .single();
 
