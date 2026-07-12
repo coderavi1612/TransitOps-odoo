@@ -31,7 +31,7 @@ dist/
 build/
 
 *.pdf
-*.md
+
 *.sql
 !backend/migrations/
 !backend/migrations/*.sql
