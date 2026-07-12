@@ -75,6 +75,15 @@ export default function Trips() {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
 
+    if (!formData.vehicle_id || formData.vehicle_id === '') {
+      setError('Please select a vehicle. If no vehicles are available, register one first.');
+      return;
+    }
+    if (!formData.driver_id || formData.driver_id === '') {
+      setError('Please select an available driver. If no drivers are available, register one first.');
+      return;
+    }
+
     const body = {
       ...formData,
       source: regions.find((region) => String(region.id) === String(formData.region_id))?.name || formData.source || 'Dispatch Hub',
@@ -86,7 +95,10 @@ export default function Trips() {
     };
 
     try {
-      await api.post('/api/trips', body);
+      const createdTrip = await api.post('/api/trips', body);
+      if (createdTrip && createdTrip.id) {
+        await api.post(`/api/trips/${createdTrip.id}/dispatch`);
+      }
       // Reset form ID
       setFormData(prev => ({
         ...prev,
@@ -96,7 +108,7 @@ export default function Trips() {
       }));
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to create trip.');
+      setError(err.message || 'Failed to create and dispatch trip.');
     }
   };
 

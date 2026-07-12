@@ -143,7 +143,7 @@ async function generateStrategyPdf(data) {
     { label: 'FUEL EFFICIENCY', val: data.fuelEfficiency, unit: 'km/L' },
     { label: 'ACTIVE VEHICLES', val: data.activeVehicles, unit: '' },
     { label: 'COMPLETED TRIPS', val: data.completedTrips, unit: '' },
-    { label: 'OPERATIONAL COST', val: `₹${Number(data.operationalCost).toLocaleString('en-IN')}`, unit: '' },
+    { label: 'OPERATIONAL COST', val: `Rs. ${Number(data.operationalCost).toLocaleString('en-IN')}`, unit: '' },
   ];
   let x = 40;
   for (const k of kpis) {
@@ -220,6 +220,7 @@ async function generateStrategyPdf(data) {
 
   return pdfDoc.save();
 }
+async function generateTripSheetPdf(tripData) {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
   const { width: W, height: H } = page.getSize();

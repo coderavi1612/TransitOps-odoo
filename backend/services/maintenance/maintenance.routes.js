@@ -44,7 +44,7 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const { vehicle_id, state } = req.query;
 
-    let query = supabaseAdmin.from('maintenance_logs').select('*');
+    let query = supabaseAdmin.from('maintenance_logs').select('*').is('deleted_at', null);
 
     if (vehicle_id) {
       query = query.eq('vehicle_id', vehicle_id);
@@ -76,6 +76,7 @@ router.get('/:id', authenticate, async (req, res) => {
       .from('maintenance_logs')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) {
@@ -315,7 +316,7 @@ router.delete(
     try {
       const { error } = await supabaseAdmin
         .from('maintenance_logs')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', req.params.id);
 
       if (error) {

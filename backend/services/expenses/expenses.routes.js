@@ -45,7 +45,7 @@ async function attachExpenseLookups(expenses) {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { vehicle_id, trip_id } = req.query;
-    let query = supabaseAdmin.from('expenses').select('*');
+    let query = supabaseAdmin.from('expenses').select('*').is('deleted_at', null);
 
     if (vehicle_id) {
       query = query.eq('vehicle_id', vehicle_id);
@@ -114,6 +114,7 @@ router.get('/:id', authenticate, async (req, res) => {
       .from('expenses')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) return res.status(404).json({ error: 'Expense not found' });
@@ -158,7 +159,7 @@ router.delete(
     try {
       const { error } = await supabaseAdmin
         .from('expenses')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', req.params.id);
 
       if (error) return res.status(400).json({ error: error.message });

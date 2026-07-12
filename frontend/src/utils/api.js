@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 const COLLECTION_KEYS_BY_PATH = [
@@ -24,77 +26,86 @@ function normalizeResponse(path, data) {
   return data;
 }
 
-export async function apiFetch(method, path, body = null, options = {}) {
+// Create Axios Instance
+const axiosInstance = axios.create({
+  baseURL: BASE_URL,
+});
+
+// Request Interceptor to inject Token
+axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('transitops_token');
-  const headers = { ...(options.headers || {}) };
-
-  if (!(body instanceof FormData)) {
-    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-  }
-
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
-
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const requestOptions = { method, headers };
-
-  if (body instanceof FormData) {
-    requestOptions.body = body;
-  } else if (body !== null && body !== undefined) {
-    requestOptions.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(`${BASE_URL}${cleanPath}`, requestOptions);
-  const contentType = response.headers.get('content-type') || '';
-  const data = contentType.includes('application/json')
-    ? await response.json()
-    : { message: await response.text() };
-
-  if (!response.ok) {
-    throw new Error(data?.error || data?.message || `Request failed with status ${response.status}`);
-  }
-
-  return normalizeResponse(cleanPath, data);
-}
-
-export async function apiDownload(path, fallbackFilename) {
-  const token = localStorage.getItem('transitops_token');
-  const headers = {};
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const response = await fetch(`${BASE_URL}${cleanPath}`, { method: 'GET', headers });
-
-  if (!response.ok) {
-    const contentType = response.headers.get('content-type') || '';
-    const errorData = contentType.includes('application/json')
-      ? await response.json()
-      : { message: await response.text() };
-    throw new Error(errorData?.error || errorData?.message || `Download failed with status ${response.status}`);
-  }
-
-  const blob = await response.blob();
-  const disposition = response.headers.get('content-disposition') || '';
-  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
-  const filename = filenameMatch?.[1] || fallbackFilename || 'download';
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
+  return config;
+});
 
 export const api = {
-  get: (path) => apiFetch('GET', path),
-  post: (path, body) => apiFetch('POST', path, body),
-  put: (path, body) => apiFetch('PUT', path, body),
-  delete: (path) => apiFetch('DELETE', path),
-  download: apiDownload,
+  get: async (path) => {
+    try {
+      const response = await axiosInstance.get(path);
+      return normalizeResponse(path, response.data);
+    } catch (error) {
+      const data = error.response?.data;
+      throw new Error(data?.error || data?.message || error.message || 'Request failed', { cause: error });
+    }
+  },
+  post: async (path, body) => {
+    try {
+      const response = await axiosInstance.post(path, body);
+      return normalizeResponse(path, response.data);
+    } catch (error) {
+      const data = error.response?.data;
+      throw new Error(data?.error || data?.message || error.message || 'Request failed', { cause: error });
+    }
+  },
+  put: async (path, body) => {
+    try {
+      const response = await axiosInstance.put(path, body);
+      return normalizeResponse(path, response.data);
+    } catch (error) {
+      const data = error.response?.data;
+      throw new Error(data?.error || data?.message || error.message || 'Request failed', { cause: error });
+    }
+  },
+  delete: async (path) => {
+    try {
+      const response = await axiosInstance.delete(path);
+      return normalizeResponse(path, response.data);
+    } catch (error) {
+      const data = error.response?.data;
+      throw new Error(data?.error || data?.message || error.message || 'Request failed', { cause: error });
+    }
+  },
+  download: async (path, fallbackFilename) => {
+    try {
+      const token = localStorage.getItem('transitops_token');
+      const headers = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const response = await axios({
+        method: 'get',
+        url: `${BASE_URL}${path.startsWith('/') ? path : '/' + path}`,
+        responseType: 'blob',
+        headers,
+      });
+
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const disposition = response.headers['content-disposition'] || '';
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+      const filename = filenameMatch?.[1] || fallbackFilename || 'download';
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      throw new Error(error.response?.data?.error || error.message || 'Download failed', { cause: error });
+    }
+  }
 };

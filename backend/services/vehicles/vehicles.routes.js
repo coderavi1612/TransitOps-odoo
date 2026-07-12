@@ -31,7 +31,7 @@ async function attachVehicleLookups(vehicles) {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { status, region, type } = req.query;
-    let query = supabaseAdmin.from('vehicles').select('*');
+    let query = supabaseAdmin.from('vehicles').select('*').is('deleted_at', null);
 
     if (status && status !== 'All') {
       query = query.eq('status', status);
@@ -65,6 +65,7 @@ router.get('/:id', authenticate, async (req, res) => {
       .from('vehicles')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) {
@@ -239,7 +240,7 @@ router.delete(
     try {
       const { error } = await supabaseAdmin
         .from('vehicles')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', req.params.id);
 
       if (error) {

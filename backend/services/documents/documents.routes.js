@@ -63,7 +63,7 @@ function toDocumentDto(row) {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { document_type } = req.query;
-    let query = supabaseAdmin.from('documents').select('*');
+    let query = supabaseAdmin.from('documents').select('*').is('deleted_at', null);
 
     if (document_type && document_type !== 'All') {
       query = query.eq('document_type', document_type);
@@ -160,36 +160,21 @@ router.delete(
         .from('documents')
         .select('file_url')
         .eq('id', req.params.id)
+        .is('deleted_at', null)
         .single();
 
       if (fetchError || !document) {
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      // 2. Delete document from database first
+      // 2. Soft delete document from database
       const { error: deleteError } = await supabaseAdmin
         .from('documents')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', req.params.id);
 
       if (deleteError) {
         return res.status(400).json({ error: deleteError.message });
-      }
-
-      // 3. Delete file from Cloudflare R2 if it exists
-      if (document.file_url) {
-        try {
-          const parts = document.file_url.split('/');
-          const key = parts[parts.length - 1];
-          await s3.send(
-            new DeleteObjectCommand({
-              Bucket: process.env.CF_R2_BUCKET_NAME,
-              Key: key,
-            })
-          );
-        } catch (r2Err) {
-          console.error('Failed to delete file from Cloudflare R2:', r2Err);
-        }
       }
 
       res.json({ message: 'Document deleted' });
@@ -207,6 +192,7 @@ router.get('/:id/download', authenticate, async (req, res) => {
       .from('documents')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null)
       .single();
 
     if (error || !document) {

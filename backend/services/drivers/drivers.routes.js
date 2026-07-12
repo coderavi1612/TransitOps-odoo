@@ -162,7 +162,7 @@ const s3 = new S3Client({
   region: 'auto',
 });
 
-async function attachDriverLookups(drivers) {
+async function attachDriverLookups(drivers, token) {
   const rows = Array.isArray(drivers) ? drivers : [drivers];
   const regionIds = [...new Set(rows.map((driver) => driver.region_id).filter(Boolean))];
   const tripIds = [...new Set(rows.map((driver) => driver.active_trip_id).filter(Boolean))];
@@ -175,11 +175,18 @@ async function attachDriverLookups(drivers) {
   const regionsById = new Map((regionsRes.data || []).map((region) => [String(region.id), region]));
   const tripsById = new Map((tripsRes.data || []).map((trip) => [String(trip.id), trip]));
 
-  const enriched = rows.map((driver) => ({
-    ...driver,
-    transit_ops_region: driver.region_id ? regionsById.get(String(driver.region_id)) || null : null,
-    active_trip: driver.active_trip_id ? tripsById.get(String(driver.active_trip_id)) || null : null,
-  }));
+  const enriched = rows.map((driver) => {
+    let avatar_url = driver.avatar_url;
+    if (avatar_url && avatar_url.includes('/api/drivers/file/') && token) {
+      avatar_url = avatar_url.split('?')[0] + `?token=${token}`;
+    }
+    return {
+      ...driver,
+      avatar_url,
+      transit_ops_region: driver.region_id ? regionsById.get(String(driver.region_id)) || null : null,
+      active_trip: driver.active_trip_id ? tripsById.get(String(driver.active_trip_id)) || null : null,
+    };
+  });
   return Array.isArray(drivers) ? enriched : enriched[0];
 }
 
@@ -187,7 +194,7 @@ async function attachDriverLookups(drivers) {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { status } = req.query;
-    let query = supabaseAdmin.from('drivers').select('*');
+    let query = supabaseAdmin.from('drivers').select('*').is('deleted_at', null);
 
     if (status) {
       query = query.eq('status', status);
@@ -200,7 +207,7 @@ router.get('/', authenticate, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch drivers' });
     }
 
-    const drivers = await attachDriverLookups(data || []);
+    const drivers = await attachDriverLookups(data || [], req.token);
     res.json({ drivers, count: drivers.length });
   } catch (err) {
     console.error('List drivers exception:', err);
@@ -215,13 +222,14 @@ router.get('/:id', authenticate, async (req, res) => {
       .from('drivers')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) {
       return res.status(404).json({ error: 'Driver not found' });
     }
 
-    res.json(await attachDriverLookups(data));
+    res.json(await attachDriverLookups(data, req.token));
   } catch (err) {
     console.error('Get driver error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -303,7 +311,7 @@ router.post(
         });
       }
 
-      res.status(201).json(await attachDriverLookups(driver));
+      res.status(201).json(await attachDriverLookups(driver, req.token));
     } catch (err) {
       console.error('Create driver exception:', err.message);
       res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -352,7 +360,7 @@ router.put(
         return res.status(400).json({ error: updateError.message });
       }
 
-      res.json(await attachDriverLookups(updated));
+      res.json(await attachDriverLookups(updated, req.token));
     } catch (err) {
       console.error('Update driver exception:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -370,7 +378,7 @@ router.delete(
     try {
       const { error } = await supabaseAdmin
         .from('drivers')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', req.params.id);
 
       if (error) {
@@ -386,8 +394,8 @@ router.delete(
   }
 );
 
-// GET /api/drivers/file/:folder/:key — Serve driver photos/licenses directly from R2
-router.get('/file/:folder/:key', async (req, res) => {
+// GET /api/drivers/file/:folder/:key — Serve driver photos/licenses directly from R2 (Authenticated)
+router.get('/file/:folder/:key', authenticate, async (req, res) => {
   try {
     const key = `${req.params.folder}/${req.params.key}`;
     const { GetObjectCommand } = require('@aws-sdk/client-s3');

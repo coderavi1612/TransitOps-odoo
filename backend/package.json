@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "seed:admin": "node seed-dev-admin.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-trips-maintenance-fuel.js"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +20,8 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "multer": "^2.2.0",
-    "pdf-lib": "^1.18.0",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.22.0",
     "tesseract.js": "^7.0.0",
     "ws": "^8.21.0"
   },

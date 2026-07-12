@@ -35,7 +35,7 @@ async function attachTripLookups(trips) {
 router.get('/', authenticate, async (req, res) => {
   try {
     // Drivers can only see their assigned trips
-    let query = supabaseAdmin.from('trips').select('*');
+    let query = supabaseAdmin.from('trips').select('*').is('deleted_at', null);
 
     // Initialize userRoles if not set
     const userRoles = req.userRoles || [];
@@ -77,6 +77,7 @@ router.get('/:id', authenticate, async (req, res) => {
       .from('trips')
       .select('*')
       .eq('id', req.params.id)
+      .is('deleted_at', null)
       .single();
 
     if (error || !data) {
@@ -446,7 +447,7 @@ router.delete(
     try {
       const { error } = await supabaseAdmin
         .from('trips')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', req.params.id);
 
       if (error) {
