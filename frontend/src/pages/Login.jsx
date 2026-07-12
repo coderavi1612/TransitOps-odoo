@@ -11,7 +11,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState('fleet_manager');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +22,7 @@ export default function Login() {
 
     try {
       if (isRegister) {
-        await signup(email, password, fullName, role);
+        await signup(email, password, fullName, 'driver');
       } else {
         await login(email, password);
       }
@@ -54,7 +53,7 @@ export default function Login() {
         {/* Brand Side (Left on Desktop) */}
         <div className="hidden md:flex flex-col max-w-md text-left">
           <div className="mb-8">
-            <h1 className="font-headline text-6xl font-bold text-on-surface tracking-tight leading-none">Sahara Fleet</h1>
+            <h1 className="font-headline text-6xl font-bold text-on-surface tracking-tight leading-none">TransitOps</h1>
             <p className="font-label text-sm uppercase tracking-[0.2em] text-primary mt-4 font-semibold">Enterprise Control</p>
           </div>
           <div className="space-y-8">
@@ -102,7 +101,7 @@ export default function Login() {
                 {isRegister ? 'Register Account' : 'Welcome Back'}
               </h2>
               <p className="text-on-surface-variant text-sm">
-                {isRegister ? 'Create a corporate operator profile.' : 'Please enter your credentials to access the Sahara Fleet hub.'}
+                {isRegister ? 'Create a corporate operator profile.' : 'Please enter your credentials to access TransitOps.'}
               </p>
             </div>
 
@@ -154,7 +153,7 @@ export default function Login() {
                   <input
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-3 pl-11 text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-outline outline-none text-on-surface"
                     id="email"
-                    placeholder="manager@sahara.com"
+                    placeholder="manager@transitops.com"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -168,7 +167,7 @@ export default function Login() {
                 <div className="flex justify-between items-center ml-1">
                   <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold" htmlFor="password">Security Key</label>
                   {!isRegister && (
-                    <a className="text-[11px] text-primary font-bold hover:underline" href="#forgot">Forgot?</a>
+                    <a className="text-[11px] text-primary font-bold hover:underline" href="mailto:support@transitops.com?subject=TransitOps%20password%20reset">Forgot?</a>
                   )}
                 </div>
                 <div className="relative">
@@ -186,25 +185,9 @@ export default function Login() {
               </div>
 
               {isRegister && (
-                <div className="space-y-1.5">
-                  <label className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold ml-1" htmlFor="role">Assigned Role</label>
-                  <div className="relative">
-                    <select
-                      className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-3 pl-11 pr-10 text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none text-on-surface appearance-none"
-                      id="role"
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                    >
-                      <option value="fleet_manager">Fleet Manager</option>
-                      <option value="driver">Driver</option>
-                      <option value="safety_officer">Safety Officer</option>
-                      <option value="financial_analyst">Financial Analyst</option>
-                      <option value="admin">System Administrator</option>
-                    </select>
-                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-xl">admin_panel_settings</span>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
-                  </div>
-                </div>
+                <p className="text-[11px] text-on-surface-variant leading-relaxed bg-surface-container-low border border-outline-variant/40 rounded-xl p-3">
+                  Self-service accounts start with the Driver role. An administrator can assign an elevated operational role after verification.
+                </p>
               )}
 
               {!isRegister && (
@@ -222,7 +205,7 @@ export default function Login() {
                 {loading ? (
                   <>
                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span>Authenticating...</span>
@@ -238,9 +221,9 @@ export default function Login() {
 
             {/* Support Footer */}
             <div className="mt-10 pt-6 border-t border-outline-variant/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-[11px] text-on-surface-variant/70 uppercase tracking-widest">Sahara Systems v4.2.1</p>
+              <p className="text-[11px] text-on-surface-variant/70 uppercase tracking-widest">TransitOps v1.0</p>
               <div className="flex gap-4">
-                <a className="text-[11px] font-bold text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1" href="#help">
+                <a className="text-[11px] font-bold text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1" href="mailto:support@transitops.com">
                   <span className="material-symbols-outlined text-sm">help</span>
                   Support
                 </a>

@@ -32,6 +32,8 @@ DROP TABLE IF EXISTS public.transit_ops_expense_category CASCADE;
 CREATE TABLE public.transit_ops_region (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
+    code VARCHAR(2) NOT NULL UNIQUE,
+    region_type VARCHAR(32) NOT NULL CHECK (region_type IN ('State', 'Union Territory')),
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -236,8 +238,22 @@ CREATE TRIGGER tr_expenses_updated_at BEFORE UPDATE ON public.expenses FOR EACH 
 CREATE TRIGGER tr_documents_updated_at BEFORE UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Seed lookup values
-INSERT INTO public.transit_ops_region (name)
-VALUES ('Maharashtra'), ('Karnataka'), ('Tamil Nadu'), ('Delhi'), ('All Over India')
+INSERT INTO public.transit_ops_region (name, code, region_type)
+VALUES
+  ('Andhra Pradesh', 'AP', 'State'), ('Arunachal Pradesh', 'AR', 'State'), ('Assam', 'AS', 'State'),
+  ('Bihar', 'BR', 'State'), ('Chhattisgarh', 'CG', 'State'), ('Goa', 'GA', 'State'),
+  ('Gujarat', 'GJ', 'State'), ('Haryana', 'HR', 'State'), ('Himachal Pradesh', 'HP', 'State'),
+  ('Jharkhand', 'JH', 'State'), ('Karnataka', 'KA', 'State'), ('Kerala', 'KL', 'State'),
+  ('Madhya Pradesh', 'MP', 'State'), ('Maharashtra', 'MH', 'State'), ('Manipur', 'MN', 'State'),
+  ('Meghalaya', 'ML', 'State'), ('Mizoram', 'MZ', 'State'), ('Nagaland', 'NL', 'State'),
+  ('Odisha', 'OD', 'State'), ('Punjab', 'PB', 'State'), ('Rajasthan', 'RJ', 'State'),
+  ('Sikkim', 'SK', 'State'), ('Tamil Nadu', 'TN', 'State'), ('Telangana', 'TS', 'State'),
+  ('Tripura', 'TR', 'State'), ('Uttar Pradesh', 'UP', 'State'), ('Uttarakhand', 'UK', 'State'),
+  ('West Bengal', 'WB', 'State'), ('Andaman and Nicobar Islands', 'AN', 'Union Territory'),
+  ('Chandigarh', 'CH', 'Union Territory'), ('Dadra and Nagar Haveli and Daman and Diu', 'DN', 'Union Territory'),
+  ('Delhi', 'DL', 'Union Territory'), ('Jammu and Kashmir', 'JK', 'Union Territory'),
+  ('Ladakh', 'LA', 'Union Territory'), ('Lakshadweep', 'LD', 'Union Territory'),
+  ('Puducherry', 'PY', 'Union Territory')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO public.transit_ops_vehicle_type (name, default_capacity)

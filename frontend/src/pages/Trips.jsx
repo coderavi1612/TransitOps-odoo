@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { formatWeight } from '../utils/formatters';
 
 export default function Trips() {
   const createTripReference = () => 'TRP-' + Math.floor(1000 + Math.random() * 9000);
@@ -71,7 +72,7 @@ export default function Trips() {
     loadData();
   }, []);
 
-  const handleCreateTrip = async (e) => {
+  const handleCreateTrip = async (e, dispatch = true) => {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
 
@@ -81,6 +82,14 @@ export default function Trips() {
     }
     if (!formData.driver_id || formData.driver_id === '') {
       setError('Please select an available driver. If no drivers are available, register one first.');
+      return;
+    }
+    if (!formData.destination.trim()) {
+      setError('Enter a destination before saving the trip.');
+      return;
+    }
+    if (!(Number(formData.cargo_weight) > 0) || !(Number(formData.planned_distance) > 0)) {
+      setError('Cargo weight and planned distance must be greater than zero.');
       return;
     }
 
@@ -96,7 +105,7 @@ export default function Trips() {
 
     try {
       const createdTrip = await api.post('/api/trips', body);
-      if (createdTrip && createdTrip.id) {
+      if (dispatch && createdTrip?.id) {
         await api.post(`/api/trips/${createdTrip.id}/dispatch`);
       }
       // Reset form ID
@@ -166,7 +175,7 @@ export default function Trips() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
@@ -221,7 +230,7 @@ export default function Trips() {
       <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm space-y-6">
         <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4">
           <h3 className="font-headline text-2xl font-bold text-on-surface">Recent & Active Trips</h3>
-          <button className="text-xs font-bold text-primary hover:underline">View All Trips</button>
+          <button onClick={() => setActiveTab('All')} className="text-xs font-bold text-primary hover:underline">View All Trips</button>
         </div>
 
         <div className="overflow-x-auto">
@@ -262,7 +271,7 @@ export default function Trips() {
                           {t.state}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-medium text-on-surface">{(t.cargo_weight || 0).toLocaleString()} lb</td>
+                      <td className="px-6 py-4 font-medium text-on-surface">{formatWeight(t.cargo_weight)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="relative inline-block group/menu">
                           <button className="p-1 hover:bg-surface-container rounded-lg text-on-surface-variant">
@@ -425,7 +434,7 @@ export default function Trips() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Cargo Weight (lb)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Cargo Weight (kg)</label>
                   <input
                     type="number"
                     required
@@ -512,6 +521,11 @@ export default function Trips() {
             {/* Dash Button 1 */}
             <button 
               type="button"
+              onClick={() => {
+                setPalletCount((count) => count + 1);
+                setUnitCount((count) => count + 12);
+                setFormData((current) => ({ ...current, notes: `${current.notes}${current.notes ? '\n' : ''}Fragile goods included.` }));
+              }}
               className="w-full border-2 border-dashed border-outline-variant/40 hover:border-primary/40 rounded-2xl p-4 flex items-center gap-3 transition-colors text-left cursor-pointer"
             >
               <div className="w-10 h-10 bg-surface-container-low rounded-xl flex items-center justify-center text-on-surface-variant">
@@ -526,6 +540,7 @@ export default function Trips() {
             {/* Dash Button 2 */}
             <button 
               type="button"
+              onClick={() => setFormData((current) => ({ ...current, notes: `${current.notes}${current.notes ? '\n' : ''}Oversized cargo included.` }))}
               className="w-full border-2 border-dashed border-outline-variant/40 hover:border-primary/40 rounded-2xl p-4 flex items-center gap-3 transition-colors text-left cursor-pointer"
             >
               <div className="w-10 h-10 bg-surface-container-low rounded-xl flex items-center justify-center text-on-surface-variant">
@@ -540,12 +555,22 @@ export default function Trips() {
             <div className="flex gap-3 pt-2">
               <button 
                 type="button"
+                onClick={() => setFormData((current) => ({ ...current, cargo_weight: String(palletCount * 90) }))}
                 className="flex-1 bg-primary text-white text-xs font-bold py-2.5 rounded-xl hover:bg-primary/95 transition-colors cursor-pointer"
               >
                 Add Items
               </button>
               <button 
                 type="button"
+                onClick={() => {
+                  const value = window.prompt('Pallet count', String(palletCount));
+                  const count = Number.parseInt(value, 10);
+                  if (Number.isInteger(count) && count > 0) {
+                    setPalletCount(count);
+                    setUnitCount(count * 12);
+                    setFormData((current) => ({ ...current, cargo_weight: String(count * 90) }));
+                  }
+                }}
                 className="flex-1 border border-outline text-on-surface-variant text-xs font-bold py-2.5 rounded-xl hover:bg-surface-container transition-colors cursor-pointer"
               >
                 Edit
@@ -592,14 +617,15 @@ export default function Trips() {
         <div className="flex gap-3">
           <button 
             type="button"
+            onClick={(event) => handleCreateTrip(event, false)}
             className="px-5 py-2.5 bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold rounded-xl text-xs transition-colors cursor-pointer"
           >
-            Save as Template
+            Save as Draft
           </button>
           
           <button 
             type="button"
-            onClick={() => handleCreateTrip()}
+            onClick={(event) => handleCreateTrip(event, true)}
             className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-primary/10 hover:bg-primary-container hover:text-on-primary-container transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm">rocket_launch</span>
@@ -645,7 +671,7 @@ export default function Trips() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Fuel Consumed (Liters)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Fuel Consumed (litres)</label>
                 <input
                   type="number"
                   required

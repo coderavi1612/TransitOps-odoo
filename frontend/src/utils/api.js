@@ -8,6 +8,7 @@ const COLLECTION_KEYS_BY_PATH = [
   ['/api/trips', 'trips'],
   ['/api/maintenance', 'maintenance_logs'],
   ['/api/fuel', 'fuel_logs'],
+  ['/api/expenses', 'expenses'],
   ['/api/documents', 'documents'],
   ['/api/dashboard/vehicle-performance', 'vehicles'],
 ];
@@ -39,6 +40,74 @@ axiosInstance.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Response Interceptor to handle Token Refresh on 401 Unauthorized
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return axiosInstance(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('transitops_refresh_token');
+      if (!refreshToken) {
+        isRefreshing = false;
+        return Promise.reject(error);
+      }
+
+      try {
+        const refreshResponse = await axios.post(`${BASE_URL}/api/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const { access_token, refresh_token: newRefreshToken } = refreshResponse.data.session;
+        localStorage.setItem('transitops_token', access_token);
+        localStorage.setItem('transitops_refresh_token', newRefreshToken);
+
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+
+        processQueue(null, access_token);
+        isRefreshing = false;
+        return axiosInstance(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        isRefreshing = false;
+        localStorage.removeItem('transitops_token');
+        localStorage.removeItem('transitops_refresh_token');
+        window.location.href = '/login';
+        return Promise.reject(refreshErr);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const api = {
   get: async (path) => {

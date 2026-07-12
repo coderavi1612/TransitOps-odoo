@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { formatCurrency } from '../utils/formatters';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Reports() {
+  const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const [analytics, setAnalytics] = useState(null);
   const [kpis, setKpis] = useState(null);
   const [performanceRows, setPerformanceRows] = useState([]);
@@ -9,6 +14,7 @@ export default function Reports() {
   const [exporting, setExporting] = useState('');
   const [exportError, setExportError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [chartMode, setChartMode] = useState('line');
 
   useEffect(() => {
     async function loadData() {
@@ -34,7 +40,7 @@ export default function Reports() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
@@ -106,7 +112,7 @@ export default function Reports() {
             <span className="material-symbols-outlined text-outline text-lg">payments</span>
           </div>
           <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-on-surface">₹{operationalCost.toLocaleString('en-IN')}</p>
+            <p className="font-headline text-3xl font-bold text-on-surface">{formatCurrency(operationalCost, { maximumFractionDigits: 0 })}</p>
             <span className="text-xs text-on-surface-variant font-medium">INR</span>
           </div>
           <p className="text-[10px] text-on-surface-variant bg-surface-container border border-outline-variant px-2 py-0.5 rounded-full font-bold inline-block mt-2">Live operating spend</p>
@@ -133,8 +139,8 @@ export default function Reports() {
               <p className="text-xs text-on-surface-variant font-medium mt-0.5">Comparative analysis of monthly acquisition recovery.</p>
             </div>
             <div className="flex bg-surface-container rounded-xl p-1 text-[10px] font-bold">
-              <button className="px-3 py-1 bg-surface-container-lowest rounded-lg border border-outline-variant/20 shadow-xs cursor-pointer">Line</button>
-              <button className="px-3 py-1 text-on-surface-variant cursor-pointer">Area</button>
+              <button onClick={() => setChartMode('line')} className={`px-3 py-1 rounded-lg cursor-pointer ${chartMode === 'line' ? 'bg-surface-container-lowest border border-outline-variant/20 shadow-xs' : 'text-on-surface-variant'}`}>Line</button>
+              <button onClick={() => setChartMode('area')} className={`px-3 py-1 rounded-lg cursor-pointer ${chartMode === 'area' ? 'bg-surface-container-lowest border border-outline-variant/20 shadow-xs' : 'text-on-surface-variant'}`}>Area</button>
             </div>
           </div>
 
@@ -148,6 +154,7 @@ export default function Reports() {
 
             {/* Sparkline curve */}
             <svg className="absolute inset-0 w-full h-full px-6 py-8" viewBox="0 0 400 100" preserveAspectRatio="none">
+              {chartMode === 'area' && <path d="M 0 80 Q 80 40, 160 50 T 320 20 T 400 35 L 400 100 L 0 100 Z" fill="var(--color-primary)" opacity="0.16" />}
               <path d="M 0 80 Q 80 40, 160 50 T 320 20 T 400 35" fill="none" stroke="var(--color-primary)" strokeWidth="3" />
               <path d="M 0 90 Q 80 60, 160 75 T 320 50 T 400 65" fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeDasharray="4" />
             </svg>
@@ -180,7 +187,7 @@ export default function Reports() {
               </div>
             )}
 
-            <div className="space-y-3">
+            {hasRole(['admin', 'fleet_manager', 'financial_analyst', 'safety_officer']) ? <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => handleExport('csv')}
@@ -206,7 +213,7 @@ export default function Reports() {
                 </span>
                 <span className="material-symbols-outlined">download</span>
               </button>
-            </div>
+            </div> : <p className="text-xs text-on-surface-variant bg-surface-container-low border border-outline-variant/40 rounded-xl p-3">Your role has read-only report access. Exporting requires a management or audit role.</p>}
           </div>
 
           <div className="pt-6 border-t border-outline-variant/40 mt-6 flex items-center gap-3">
@@ -281,7 +288,7 @@ export default function Reports() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors">
+                        <button onClick={() => navigate('/vehicles')} title="Open vehicle registry" className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors">
                           <span className="material-symbols-outlined">more_horiz</span>
                         </button>
                       </td>

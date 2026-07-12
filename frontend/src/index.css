@@ -76,7 +76,7 @@ body {
   line-height: 1;
 }
 
-/* Scrollbar customization matching Sahara style */
+/* Scrollbar customization matching the TransitOps visual style */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -90,4 +90,21 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-outline);
+}
+
+.dark {
+  --color-background: #0f172a;
+  --color-on-background: #f8fafc;
+  --color-surface: #1e293b;
+  --color-surface-dim: #0f172a;
+  --color-surface-bright: #1e293b;
+  --color-surface-container: #1e293b;
+  --color-surface-container-low: #0f172a;
+  --color-surface-container-lowest: #020617;
+  --color-surface-container-high: #334155;
+  --color-surface-container-highest: #475569;
+  --color-on-surface: #f8fafc;
+  --color-on-surface-variant: #cbd5e1;
+  --color-outline: #64748b;
+  --color-outline-variant: #334155;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { formatCurrency } from '../utils/formatters';
 
 export default function Maintenance() {
   const { hasRole } = useAuth();
@@ -56,7 +57,7 @@ export default function Maintenance() {
     const body = {
       ...formData,
       vehicle_id: formData.vehicle_id,
-      maintenance_type_id: parseInt(formData.maintenance_type_id),
+      maintenance_type_id: formData.maintenance_type_id || null,
       cost: parseFloat(formData.cost),
     };
 
@@ -87,7 +88,12 @@ export default function Maintenance() {
   const handleCloseLog = async (id) => {
     setError('');
     try {
-      await api.post(`/api/maintenance/${id}/close`);
+      const log = logs.find((item) => item.id === id);
+      const vehicle = vehicles.find((item) => item.id === log?.vehicle_id);
+      await api.post(`/api/maintenance/${id}/close`, {
+        cost: Number(log?.cost || 0),
+        odometer: Number(vehicle?.odometer || 0),
+      });
       loadData();
     } catch (err) {
       setError(err.message || 'Failed to close log.');
@@ -109,7 +115,7 @@ export default function Maintenance() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
@@ -201,7 +207,7 @@ export default function Maintenance() {
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider font-label">Avg. Service Cost</span>
-            <p className="font-headline text-3xl font-extrabold text-on-surface mt-2">₹{avgCost.toLocaleString()}</p>
+            <p className="font-headline text-3xl font-extrabold text-on-surface mt-2">{formatCurrency(avgCost, { maximumFractionDigits: 0 })}</p>
             <p className="text-[10px] text-on-surface-variant mt-1.5 font-medium">Estimated monthly average per unit</p>
           </div>
           
@@ -303,7 +309,7 @@ export default function Maintenance() {
                   * Saving this entry will automatically update vehicle status to <span className="font-bold text-primary">'In Shop'</span>, removing it from active dispatcher pools.
                 </p>
 
-                {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+                {hasRole(['fleet_manager', 'admin']) && (
                   <button
                     type="submit"
                     className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/10 hover:bg-primary/95 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
@@ -321,7 +327,7 @@ export default function Maintenance() {
           <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4">
               <h3 className="font-headline text-lg font-bold text-on-surface">Recent Records</h3>
-              <button className="text-xs font-bold text-primary hover:underline">Export PDF</button>
+              <button onClick={() => api.download('/api/dashboard/reports/maintenance/export', 'transitops-maintenance.csv').catch((err) => setError(err.message))} className="text-xs font-bold text-primary hover:underline">Export CSV</button>
             </div>
 
             <div className="space-y-4 overflow-y-auto max-h-[500px] pr-1">
@@ -369,10 +375,10 @@ export default function Maintenance() {
 
                       {/* Cost and Actions */}
                       <div className="flex justify-between items-end pt-2 border-t border-outline-variant/20">
-                        <p className="font-bold text-on-surface text-xs">₹{parseFloat(log.cost || 0).toLocaleString()}</p>
+                        <p className="font-bold text-on-surface text-xs">{formatCurrency(log.cost, { maximumFractionDigits: 0 })}</p>
                         
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+                          {hasRole(['fleet_manager', 'admin']) && (
                             <>
                               {log.state === 'Scheduled' && (
                                 <button

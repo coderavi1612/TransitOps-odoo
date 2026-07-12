@@ -36,6 +36,7 @@ const testUsers = {
   driver: { email: `driver-${Date.now()}@transitops.local`, password: 'DrvPass123!', full_name: 'Test Driver', role: 'driver' },
   safety_officer: { email: `safety-${Date.now()}@transitops.local`, password: 'SafPass123!', full_name: 'Safety Officer', role: 'safety_officer' },
   financial_analyst: { email: `analyst-${Date.now()}@transitops.local`, password: 'AnaPass123!', full_name: 'Analyst', role: 'financial_analyst' },
+  dispatcher: { email: `dispatcher-${Date.now()}@transitops.local`, password: 'DispPass123!', full_name: 'Dispatcher User', role: 'dispatcher' },
 };
 
 async function sleep(ms) {
@@ -162,7 +163,7 @@ async function testTripCreate() {
         driver_id: driverId,
         planned_date: new Date().toISOString().split('T')[0],
       },
-      { headers: { Authorization: `Bearer ${tokens.fleet_manager}` } }
+      { headers: { Authorization: `Bearer ${tokens.dispatcher}` } }
     );
 
     tripId = response.data.id;
@@ -178,7 +179,7 @@ async function testTripList() {
   log.section('TRIPS: List Trips');
 
   const roleTests = [
-    { role: 'fleet_manager', label: 'Fleet Manager (should see all)' },
+    { role: 'dispatcher', label: 'Dispatcher (should see all)' },
     { role: 'driver', label: 'Driver (should see own)' },
     { role: 'financial_analyst', label: 'Financial Analyst (should see all)' },
   ];
@@ -216,7 +217,7 @@ async function testTripDispatch() {
     const response = await axios.post(
       `${BASE_URL}/trips/${tripId}/dispatch`,
       {},
-      { headers: { Authorization: `Bearer ${tokens.fleet_manager}` } }
+      { headers: { Authorization: `Bearer ${tokens.dispatcher}` } }
     );
 
     log.success(`Trip dispatched: ${response.data.state}`);
@@ -260,7 +261,7 @@ async function testTripComplete() {
 
 async function testMaintenanceCreate() {
   log.section('MAINTENANCE: Create Maintenance Log');
-  log.test('Creating maintenance (Safety Officer)...');
+  log.test('Creating maintenance (Fleet Manager)...');
 
   if (!vehicleId) {
     log.error('Vehicle not created');
@@ -276,7 +277,7 @@ async function testMaintenanceCreate() {
         scheduled_date: new Date().toISOString().split('T')[0],
         notes: 'Regular maintenance',
       },
-      { headers: { Authorization: `Bearer ${tokens.safety_officer}` } }
+      { headers: { Authorization: `Bearer ${tokens.fleet_manager}` } }
     );
 
     maintenanceId = response.data.id;
@@ -290,7 +291,7 @@ async function testMaintenanceCreate() {
 
 async function testMaintenanceOpen() {
   log.section('MAINTENANCE: Open Maintenance');
-  log.test('Opening maintenance (Safety Officer)...');
+  log.test('Opening maintenance (Fleet Manager)...');
 
   if (!maintenanceId) {
     log.error('Maintenance not created');
@@ -301,7 +302,7 @@ async function testMaintenanceOpen() {
     const response = await axios.post(
       `${BASE_URL}/maintenance/${maintenanceId}/open`,
       {},
-      { headers: { Authorization: `Bearer ${tokens.safety_officer}` } }
+      { headers: { Authorization: `Bearer ${tokens.fleet_manager}` } }
     );
 
     log.success(`Maintenance opened: ${response.data.state}`);
@@ -314,7 +315,7 @@ async function testMaintenanceOpen() {
 
 async function testMaintenanceClose() {
   log.section('MAINTENANCE: Close Maintenance');
-  log.test('Closing maintenance (Safety Officer)...');
+  log.test('Closing maintenance (Fleet Manager)...');
 
   if (!maintenanceId) {
     log.error('Maintenance not opened');
@@ -325,7 +326,7 @@ async function testMaintenanceClose() {
     const response = await axios.post(
       `${BASE_URL}/maintenance/${maintenanceId}/close`,
       { cost: 15000, odometer: 5520 },
-      { headers: { Authorization: `Bearer ${tokens.safety_officer}` } }
+      { headers: { Authorization: `Bearer ${tokens.fleet_manager}` } }
     );
 
     log.success(`Maintenance closed: ${response.data.state}`);
@@ -383,7 +384,7 @@ async function testFuelList() {
     log.success(`Got ${response.data.count} fuel log(s)`);
     if (response.data.totals) {
       log.info(`  Total Litres: ${response.data.totals.total_litres.toFixed(2)}`);
-      log.info(`  Total Cost: ₦${response.data.totals.total_cost.toFixed(2)}`);
+      log.info(`  Total Cost: ₹${response.data.totals.total_cost.toFixed(2)}`);
       log.info(`  Avg Efficiency: ${response.data.totals.avg_efficiency.toFixed(2)}km/L`);
     }
     return true;

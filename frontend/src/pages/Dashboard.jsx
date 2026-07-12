@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { formatCurrency, formatWeight } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
@@ -52,7 +53,7 @@ export default function Dashboard() {
     if (!loading) {
       reloadKpis();
     }
-  }, [selectedRegion, selectedStatus, selectedType]);
+  }, [loading, selectedRegion, selectedStatus, selectedType]);
 
   const statuses = ['Available', 'On Trip', 'In Shop', 'Retired'];
 
@@ -60,7 +61,7 @@ export default function Dashboard() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
@@ -252,7 +253,7 @@ export default function Dashboard() {
             </div>
             <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
               <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Daily Cost Estimate</p>
-              <p className="font-headline text-2xl font-bold text-on-surface mt-1">₹{dailyCost.toFixed(2)}</p>
+              <p className="font-headline text-2xl font-bold text-on-surface mt-1">{formatCurrency(dailyCost)}</p>
               <p className="text-xs text-on-surface-variant mt-1 font-medium">Based on fuel & servicing</p>
             </div>
           </div>
@@ -261,7 +262,7 @@ export default function Dashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-on-surface-variant">Active Load Capacity</span>
-              <span className="text-on-surface">{capacity.toLocaleString()} lb capacity</span>
+              <span className="text-on-surface">{formatWeight(capacity)} capacity</span>
             </div>
             <div className="w-full bg-surface-container h-2.5 rounded-full overflow-hidden">
               <div className="bg-primary h-full rounded-full" style={{ width: featuredVehicle ? '100%' : '0%' }}></div>
@@ -289,7 +290,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-outline-variant/40 pb-4">
               <h4 className="font-headline text-2xl font-bold text-on-surface">Recent Alerts</h4>
-              <span className="px-2.5 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold rounded-full uppercase tracking-wider">3 New</span>
+              <span className="px-2.5 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold rounded-full uppercase tracking-wider">{alerts.length} New</span>
             </div>
 
             {/* Alert List */}
@@ -311,7 +312,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <button className="w-full border border-outline hover:border-primary text-on-surface-variant hover:text-primary font-bold py-3.5 rounded-xl text-xs mt-6 transition-all cursor-pointer flex items-center justify-center gap-2">
+          <button onClick={() => navigate('/maintenance')} className="w-full border border-outline hover:border-primary text-on-surface-variant hover:text-primary font-bold py-3.5 rounded-xl text-xs mt-6 transition-all cursor-pointer flex items-center justify-center gap-2">
             View All Critical Alerts
             <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>

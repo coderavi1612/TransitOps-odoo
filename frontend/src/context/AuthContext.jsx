@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
       console.error('Session validation failed:', err.message);
       // Clean up invalid session
       localStorage.removeItem('transitops_token');
+      localStorage.removeItem('transitops_refresh_token');
       setUser(null);
       setRoles([]);
       setProfile(null);
@@ -49,6 +50,7 @@ export function AuthProvider({ children }) {
       const data = await api.post('/api/auth/login', { email, password });
       if (data?.session?.access_token) {
         localStorage.setItem('transitops_token', data.session.access_token);
+        localStorage.setItem('transitops_refresh_token', data.session.refresh_token);
         await checkSession();
         return data;
       } else {
@@ -56,6 +58,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       localStorage.removeItem('transitops_token');
+      localStorage.removeItem('transitops_refresh_token');
       setUser(null);
       setRoles([]);
       setProfile(null);
@@ -67,7 +70,7 @@ export function AuthProvider({ children }) {
   const signup = async (email, password, fullName, role) => {
     setLoading(true);
     try {
-      const data = await api.post('/api/auth/test-signup', {
+      const data = await api.post('/api/auth/signup', {
         email,
         password,
         full_name: fullName,
@@ -75,12 +78,14 @@ export function AuthProvider({ children }) {
       });
       if (data?.session?.access_token) {
         localStorage.setItem('transitops_token', data.session.access_token);
+        localStorage.setItem('transitops_refresh_token', data.session.refresh_token);
         await checkSession();
         return data;
       }
       throw new Error('No access token received');
     } catch (err) {
       localStorage.removeItem('transitops_token');
+      localStorage.removeItem('transitops_refresh_token');
       setUser(null);
       setRoles([]);
       setProfile(null);
@@ -100,6 +105,7 @@ export function AuthProvider({ children }) {
       console.warn('Logout request failed:', err.message);
     } finally {
       localStorage.removeItem('transitops_token');
+      localStorage.removeItem('transitops_refresh_token');
       setUser(null);
       setRoles([]);
       setProfile(null);

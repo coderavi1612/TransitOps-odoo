@@ -176,7 +176,7 @@ export default function Drivers() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
@@ -217,7 +217,7 @@ export default function Drivers() {
               <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline">search</span>
             </div>
 
-            {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+            {hasRole(['safety_officer', 'admin']) && (
               <button
                 onClick={handleOpenAdd}
                 className="bg-primary text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-container hover:text-on-primary-container active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer shrink-0"
@@ -346,7 +346,7 @@ export default function Drivers() {
 
               {/* Action Buttons */}
               <div className="flex gap-2 border-t border-outline-variant/40 pt-4">
-                {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+                {hasRole(['safety_officer', 'admin']) && (
                   <button
                     onClick={() => handleOpenEdit(d)}
                     className="flex-1 border border-outline hover:border-primary text-on-surface-variant hover:text-primary font-bold py-2 rounded-xl text-xs transition-all cursor-pointer"
@@ -354,7 +354,7 @@ export default function Drivers() {
                     Edit Profile
                   </button>
                 )}
-                {hasRole(['fleet_manager', 'admin']) && (
+                {hasRole(['safety_officer', 'admin']) && (
                   <button
                     onClick={() => handleDelete(d.id)}
                     className="px-3 border border-outline hover:border-tertiary text-on-surface-variant hover:text-tertiary rounded-xl transition-all cursor-pointer"
@@ -368,7 +368,7 @@ export default function Drivers() {
         })}
 
         {/* Placeholder for Adding New Driver */}
-        {hasRole(['fleet_manager', 'safety_officer', 'admin']) && (
+        {hasRole(['safety_officer', 'admin']) && (
           <button
             onClick={handleOpenAdd}
             className="bg-surface-container/20 border-2 border-dashed border-outline-variant hover:border-primary rounded-[32px] p-6 flex flex-col items-center justify-center text-center group transition-all min-h-[300px] cursor-pointer"
@@ -377,7 +377,7 @@ export default function Drivers() {
               <span className="material-symbols-outlined text-3xl">person_add</span>
             </div>
             <h4 className="font-headline text-xl font-bold text-on-surface">Onboard New Driver</h4>
-            <p className="text-xs text-on-surface-variant font-medium mt-1.5 max-w-[200px]">Add a new driver operator to the Sahara Fleet ecosystem.</p>
+            <p className="text-xs text-on-surface-variant font-medium mt-1.5 max-w-[200px]">Add a new driver operator to TransitOps.</p>
           </button>
         )}
       </div>
@@ -459,7 +459,7 @@ export default function Drivers() {
                           {uploadingPhoto ? (
                             <>
                               <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                               </svg>
                               Uploading...
@@ -508,7 +508,7 @@ export default function Drivers() {
                       {extractingLicense ? (
                         <>
                           <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
                           Extracting...

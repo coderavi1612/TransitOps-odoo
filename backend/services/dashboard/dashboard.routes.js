@@ -425,12 +425,12 @@ router.get('/kpis', authenticate, async (req, res) => {
   try {
     const { region, status, type } = req.query;
     const [vehiclesRes, driversRes, tripsRes, maintenanceRes, fuelRes, expensesRes] = await Promise.all([
-      supabase.from('vehicles').select('*'),
-      supabase.from('drivers').select('*'),
-      supabase.from('trips').select('*'),
-      supabase.from('maintenance_logs').select('*'),
-      supabase.from('fuel_logs').select('*'),
-      supabase.from('expenses').select('*')
+      supabase.from('vehicles').select('*').is('deleted_at', null),
+      supabase.from('drivers').select('*').is('deleted_at', null),
+      supabase.from('trips').select('*').is('deleted_at', null),
+      supabase.from('maintenance_logs').select('*').is('deleted_at', null),
+      supabase.from('fuel_logs').select('*').is('deleted_at', null),
+      supabase.from('expenses').select('*').is('deleted_at', null)
     ]);
 
     if (vehiclesRes.error) throw vehiclesRes.error;

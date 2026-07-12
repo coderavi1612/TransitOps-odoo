@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '../utils/formatters';
 
 export default function FuelExpenses() {
   const { hasRole } = useAuth();
+  const navigate = useNavigate();
   
   const [fuelLogs, setFuelLogs] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -13,6 +16,7 @@ export default function FuelExpenses() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [logType, setLogType] = useState('fuel'); // 'fuel' or 'expense'
+  const [logFilter, setLogFilter] = useState('All');
 
   // Fuel Form state
   const [fuelForm, setFuelForm] = useState({
@@ -140,7 +144,7 @@ export default function FuelExpenses() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
@@ -174,6 +178,7 @@ export default function FuelExpenses() {
       onDelete: () => handleDeleteExpense(e.id),
     })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const visibleLogs = unifiedLogs.filter((log) => logFilter === 'All' || log.type === logFilter || (logFilter === 'Expense' && log.type !== 'Fuel'));
 
   // Compute metrics
   const vehicleCostBars = vehicles.map((vehicle) => {
@@ -260,7 +265,7 @@ export default function FuelExpenses() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Liters</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Litres</label>
                     <input
                       type="number"
                       required
@@ -317,7 +322,7 @@ export default function FuelExpenses() {
                   />
                 </div>
 
-                {hasRole(['fleet_manager', 'admin']) && (
+                {hasRole(['driver', 'dispatcher', 'financial_analyst', 'admin']) && (
                   <button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/10 transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer mt-6"
@@ -389,7 +394,7 @@ export default function FuelExpenses() {
                   />
                 </div>
 
-                {hasRole(['fleet_manager', 'financial_analyst', 'admin']) && (
+                {hasRole(['driver', 'dispatcher', 'financial_analyst', 'admin']) && (
                   <button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/10 transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer mt-6"
@@ -454,11 +459,10 @@ export default function FuelExpenses() {
         <div className="flex flex-wrap justify-between items-center gap-4 border-b border-outline-variant/40 pb-4">
           <h3 className="font-headline text-2xl font-bold text-on-surface">Recent Operational Logs</h3>
           <div className="flex items-center gap-2">
-            <button className="px-4 py-2 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container flex items-center gap-1.5 cursor-pointer transition-colors">
-              <span className="material-symbols-outlined text-sm">filter_list</span>
-              Filter
-            </button>
-            <button className="px-4 py-2 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container flex items-center gap-1.5 cursor-pointer transition-colors">
+            <select value={logFilter} onChange={(event) => setLogFilter(event.target.value)} className="px-4 py-2 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant bg-surface cursor-pointer">
+              <option value="All">All logs</option><option value="Fuel">Fuel only</option><option value="Expense">Expenses only</option>
+            </select>
+            <button onClick={() => api.download('/api/dashboard/reports/audit/export', 'transitops-audit.csv').catch((err) => setError(err.message))} className="px-4 py-2 border border-outline-variant/60 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container flex items-center gap-1.5 cursor-pointer transition-colors">
               <span className="material-symbols-outlined text-sm">file_download</span>
               Export CSV
             </button>
@@ -478,14 +482,14 @@ export default function FuelExpenses() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/40">
-              {unifiedLogs.length === 0 ? (
+              {visibleLogs.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="px-6 py-8 text-center text-on-surface-variant font-medium">
                     No operational logs logged in fleet registry.
                   </td>
                 </tr>
               ) : (
-                unifiedLogs.map((log) => {
+                visibleLogs.map((log) => {
                   let badgeClass = 'bg-surface-container text-on-surface-variant border border-outline-variant/30';
                   if (log.type === 'Fuel') badgeClass = 'bg-orange-50 text-orange-800 border border-orange-100';
                   if (log.type === 'Tolls') badgeClass = 'bg-blue-50 text-blue-800 border border-blue-100';
@@ -518,7 +522,7 @@ export default function FuelExpenses() {
                         <p className="font-semibold text-on-surface">{log.details}</p>
                         <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium">Recorded at Station</p>
                       </td>
-                      <td className="px-6 py-4 font-extrabold text-on-surface text-sm">₹{parseFloat(log.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 font-extrabold text-on-surface text-sm">{formatCurrency(log.amount)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="relative inline-block group/menu">
                           <button className="p-1 hover:bg-surface-container rounded-lg text-on-surface-variant">
@@ -528,8 +532,8 @@ export default function FuelExpenses() {
                           <div className="absolute right-0 top-full mt-1 bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-lg z-20 py-1 hidden group-hover/menu:block w-28 text-left">
                             {(
                               log.type === 'Fuel'
-                                ? hasRole(['fleet_manager', 'admin'])
-                                : hasRole(['fleet_manager', 'financial_analyst', 'admin'])
+                                ? hasRole(['financial_analyst', 'admin'])
+                                : hasRole(['financial_analyst', 'admin'])
                             ) && (
                               <button
                                 onClick={log.onDelete}
@@ -599,7 +603,7 @@ export default function FuelExpenses() {
               Download detailed analysis of all operational costs for Q1-Q2 2026.
             </p>
           </div>
-          <button className="w-full bg-white hover:bg-white/95 text-[#C9665E] font-bold py-2 rounded-xl text-[10px] flex items-center justify-center gap-1.5 shadow-sm mt-4 cursor-pointer transition-colors">
+          <button onClick={() => navigate('/reports')} className="w-full bg-white hover:bg-white/95 text-[#C9665E] font-bold py-2 rounded-xl text-[10px] flex items-center justify-center gap-1.5 shadow-sm mt-4 cursor-pointer transition-colors">
             <span className="material-symbols-outlined text-sm">description</span>
             View Full Report
           </button>

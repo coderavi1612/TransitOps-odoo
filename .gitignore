@@ -33,5 +33,7 @@ build/
 *.pdf
 *.md
 *.sql
+!backend/migrations/
+!backend/migrations/*.sql
 context_files/
 ref-to-frontend/

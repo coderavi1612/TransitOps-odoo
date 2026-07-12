@@ -16,42 +16,52 @@ const ROLE_PERMISSIONS = {
   },
   fleet_manager: {
     vehicles: ['create', 'read', 'update', 'delete'],
-    drivers: ['create', 'read', 'update', 'delete'],
-    trips: ['create', 'read', 'update'],
+    drivers: ['read'],
+    trips: ['read', 'update'], // Can cancel/update, but cannot create or dispatch
     maintenance: ['create', 'read', 'update', 'delete'],
-    fuel: ['create', 'read', 'update', 'delete'],
-    expenses: ['create', 'read', 'update', 'delete'],
+    fuel: ['read'],
+    expenses: ['create', 'read'], // Can view and add vehicle expenses, but cannot edit/delete
     dashboard: ['read'],
     reports: ['read', 'export'],
   },
   driver: {
     vehicles: ['read'],
     drivers: ['read'],
-    trips: ['read', 'update'], // Update assigned trips only
+    trips: ['read', 'update'],
     maintenance: ['read'],
     fuel: ['create', 'read'],
     expenses: ['create', 'read'],
-    dashboard: ['read'], // Read assigned only
+    dashboard: ['read'],
   },
   safety_officer: {
     vehicles: ['read'],
-    drivers: ['create', 'read', 'update'],
+    drivers: ['create', 'read', 'update', 'delete'],
     trips: ['read'],
-    maintenance: ['create', 'read', 'update', 'delete'],
-    fuel: ['read'],
-    expenses: ['read'],
+    maintenance: ['read'],
+    fuel: [],
+    expenses: [],
     dashboard: ['read'],
     reports: ['read'],
   },
   financial_analyst: {
     vehicles: ['read'],
-    drivers: ['read'],
+    drivers: [],
     trips: ['read'],
     maintenance: ['read'],
-    fuel: ['read'],
+    fuel: ['create', 'read', 'update', 'delete'],
     expenses: ['create', 'read', 'update', 'delete'],
     dashboard: ['read'],
     reports: ['read', 'export'],
+  },
+  dispatcher: {
+    vehicles: ['read'],
+    drivers: ['read'],
+    trips: ['create', 'read', 'update', 'delete'],
+    maintenance: ['read'],
+    fuel: ['create', 'read'],
+    expenses: ['create', 'read'],
+    dashboard: ['read'],
+    reports: ['read'],
   },
 };
 
@@ -108,29 +118,61 @@ function requireRole(...allowedRoles) {
 }
 
 function requirePermission(resource, action) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    if (!req.permissions || !req.permissions[resource]) {
-      return res.status(403).json({
-        error: 'Insufficient permissions',
-        required: `${resource}:${action}`,
-        message: `You do not have permission to ${action} ${resource}`,
-      });
-    }
+    try {
+      if (!req.permissions) {
+        // Fetch user roles and load permissions
+        const { data: roleData, error: roleError } = await supabaseAdmin
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', req.user.id);
 
-    if (!req.permissions[resource].includes(action)) {
-      return res.status(403).json({
-        error: 'Insufficient permissions',
-        required: `${resource}:${action}`,
-        your_permissions: req.permissions[resource],
-        message: `You can only ${req.permissions[resource].join(', ')} ${resource}`,
-      });
-    }
+        if (roleError) {
+          console.error('RBAC error:', roleError.message);
+          return res.status(500).json({ error: 'Failed to verify roles', detail: roleError.message });
+        }
 
-    next();
+        const userRoles = (roleData || []).map((r) => r.role);
+        req.userRoles = userRoles;
+
+        const userPermissions = {};
+        userRoles.forEach((role) => {
+          Object.entries(ROLE_PERMISSIONS[role] || {}).forEach(([resName, actions]) => {
+            if (!userPermissions[resName]) {
+              userPermissions[resName] = [];
+            }
+            userPermissions[resName] = [...new Set([...userPermissions[resName], ...actions])];
+          });
+        });
+        req.permissions = userPermissions;
+      }
+
+      if (!req.permissions[resource]) {
+        return res.status(403).json({
+          error: 'Insufficient permissions',
+          required: `${resource}:${action}`,
+          message: `You do not have permission to ${action} ${resource}`,
+        });
+      }
+
+      if (!req.permissions[resource].includes(action)) {
+        return res.status(403).json({
+          error: 'Insufficient permissions',
+          required: `${resource}:${action}`,
+          your_permissions: req.permissions[resource],
+          message: `You can only ${req.permissions[resource].join(', ')} ${resource}`,
+        });
+      }
+
+      next();
+    } catch (err) {
+      console.error('requirePermission exception:', err);
+      return res.status(500).json({ error: 'Authorization check failed' });
+    }
   };
 }
 

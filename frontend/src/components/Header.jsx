@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,19 @@ export default function Header({ onMenuClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('transitops_theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('transitops_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('transitops_theme', 'light');
+    }
+  }, [darkMode]);
 
   // Helper to map route paths to user-friendly titles
   const getPageTitle = () => {
@@ -30,7 +43,7 @@ export default function Header({ onMenuClick }) {
       case '/documents':
         return 'Documents';
       default:
-        return 'Sahara Fleet';
+        return 'TransitOps';
     }
   };
 
@@ -87,7 +100,18 @@ export default function Header({ onMenuClick }) {
 
       <div className="flex items-center gap-3 md:gap-6">
         {/* Quick Actions */}
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded-full transition-all cursor-pointer"
+            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            <span className="material-symbols-outlined text-xl">
+              {darkMode ? 'light_mode' : 'dark_mode'}
+            </span>
+          </button>
+
           <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
@@ -133,7 +157,7 @@ export default function Header({ onMenuClick }) {
               </div>
             )}
           </div>
-          <button className="p-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded-full transition-all">
+          <button onClick={() => navigate('/trips')} title="Open trip schedule" className="p-2 text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded-full transition-all hidden sm:block">
             <span className="material-symbols-outlined">calendar_today</span>
           </button>
         </div>

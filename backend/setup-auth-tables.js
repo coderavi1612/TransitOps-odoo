@@ -53,7 +53,7 @@ CREATE TRIGGER on_auth_user_created
 `;
 
 const client = new Client({
-  connectionString: 'postgresql://postgres:Ravi1612vyas@db.slwiyapceekzlpmcbgyk.supabase.co:5432/postgres',
+  connectionString: process.env.DB_URL,
   ssl: { rejectUnauthorized: false }
 });
 
