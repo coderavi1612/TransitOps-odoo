@@ -29,3 +29,8 @@ yarn-error.log*
 # Build
 dist/
 build/
+
+*.pdf
+*.md
+*.sql
+context_files/
