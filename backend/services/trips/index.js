@@ -1,2 +1,2 @@
-const tripRoutes = require('./trips.routes');
-module.exports = tripRoutes;
+const tripsRoutes = require('./trips.routes');
+module.exports = tripsRoutes;

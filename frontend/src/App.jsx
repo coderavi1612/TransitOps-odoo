@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -15,14 +16,16 @@ import Settings from './pages/Settings';
 
 // Shared Layout Wrapper for Protected Routes
 function MainLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="flex h-screen bg-background text-on-background overflow-hidden w-full font-body">
+    <div className="flex h-screen bg-background text-on-background overflow-hidden w-full font-body relative">
       {/* Sidebar navigation */}
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content display */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header />
+      <div className="flex-1 flex flex-col h-full overflow-hidden w-full">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         
         {/* Children components pages */}
         <main className="flex-1 overflow-hidden flex flex-col bg-background">
