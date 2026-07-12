@@ -127,7 +127,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {(error || message) && (
         <div className={`p-4 rounded-xl text-xs font-semibold border ${error ? 'bg-error-container text-on-error-container border-error/20' : 'bg-green-50 text-green-800 border-green-200'}`}>
           {error || message}

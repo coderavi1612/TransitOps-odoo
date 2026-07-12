@@ -106,16 +106,33 @@ export default function Login() {
             </div>
 
             {!isRegister && (
-              <div className="mb-6 p-4 rounded-xl bg-primary-fixed/30 text-on-primary-fixed-variant text-xs font-semibold border border-primary/20 flex items-start gap-2.5">
-                <span className="material-symbols-outlined text-base text-primary shrink-0 mt-0.5">info</span>
-                <div>
-                  <p className="font-bold">Development Admin Credentials</p>
-                  <p className="font-medium mt-0.5 opacity-90">
-                    Email: <span className="font-mono text-primary font-bold select-all">admin@transitops.com</span>
-                  </p>
-                  <p className="font-medium opacity-90">
-                    Password: <span className="font-mono text-primary font-bold select-all">admin123</span>
-                  </p>
+              <div className="mb-6 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/60">
+                <p className="text-xs font-bold text-on-surface mb-2.5 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm text-primary">diversity_3</span>
+                  Select a Demo Role to Autofill:
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'Admin', email: 'admin@transitops.com', pass: 'admin123', icon: 'shield_person' },
+                    { label: 'Fleet Manager', email: 'manager@transitops.com', pass: 'manager123', icon: 'local_shipping' },
+                    { label: 'Safety Officer', email: 'safety@transitops.com', pass: 'safety123', icon: 'health_and_safety' },
+                    { label: 'Dispatcher', email: 'dispatcher@transitops.com', pass: 'dispatcher123', icon: 'route' },
+                    { label: 'Analyst', email: 'analyst@transitops.com', pass: 'analyst123', icon: 'monitoring' },
+                    { label: 'Driver', email: 'driver@transitops.com', pass: 'driver123', icon: 'person' },
+                  ].map((role) => (
+                    <button
+                      key={role.label}
+                      type="button"
+                      onClick={() => {
+                        setEmail(role.email);
+                        setPassword(role.pass);
+                      }}
+                      className="flex items-center gap-2 p-2 rounded-xl text-left hover:bg-primary-fixed/40 border border-transparent hover:border-primary/20 transition-all text-xs font-semibold cursor-pointer text-on-surface-variant hover:text-on-surface bg-surface-container-lowest"
+                    >
+                      <span className="material-symbols-outlined text-sm text-primary shrink-0">{role.icon}</span>
+                      <span className="truncate">{role.label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -136,7 +153,7 @@ export default function Login() {
                     <input
                       className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-3 pl-11 text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-outline outline-none text-on-surface"
                       id="fullName"
-                      placeholder="Elena Rodriguez"
+                      placeholder="Ananya Reddy"
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}

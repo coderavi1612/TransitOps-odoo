@@ -6,7 +6,8 @@ const validate = (schema) => (req, res, next) => {
   });
 
   if (!result.success) {
-    const errorDetails = result.error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+    const issues = result.error.issues || result.error.errors || [];
+    const errorDetails = issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
     return res.status(400).json({ error: `Validation failed: ${errorDetails}` });
   }
 

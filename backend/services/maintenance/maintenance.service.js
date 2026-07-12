@@ -65,6 +65,14 @@ class MaintenanceService {
     }).select().single();
 
     if (error) throw new Error(error.message);
+
+    // Update vehicle to 'In Shop'
+    const { error: vehicleError } = await supabaseAdmin
+      .from('vehicles')
+      .update({ status: 'In Shop' })
+      .eq('id', vehicle_id);
+    if (vehicleError) throw new Error(vehicleError.message);
+
     return this.attachMaintenanceLookups(data);
   }
 

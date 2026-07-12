@@ -75,9 +75,9 @@ export default function Reports() {
   };
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {/* Overview Analytics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm">
           <div className="flex justify-between items-start">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Fuel Efficiency</span>
@@ -117,85 +117,37 @@ export default function Reports() {
           </div>
           <p className="text-[10px] text-on-surface-variant bg-surface-container border border-outline-variant px-2 py-0.5 rounded-full font-bold inline-block mt-2">Live operating spend</p>
         </div>
-
-        <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider font-label">Vehicle ROI</span>
-            <span className="material-symbols-outlined text-primary text-lg">show_chart</span>
-          </div>
-          <div className="flex items-baseline gap-1 mt-4">
-            <p className="font-headline text-3xl font-bold text-primary">{vehicleRoi}%</p>
-          </div>
-          <p className="text-[10px] text-primary bg-primary-fixed px-2 py-0.5 rounded-full font-bold inline-block mt-2">Average ROI</p>
-        </div>
       </div>
 
-      {/* Analytics Trend & Exports */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/60 shadow-sm lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between border-b border-outline-variant/40 pb-4">
-            <div>
-              <h3 className="font-headline text-2xl font-bold text-on-surface">ROI Performance Trend</h3>
-              <p className="text-xs text-on-surface-variant font-medium mt-0.5">Comparative analysis of monthly acquisition recovery.</p>
-            </div>
-            <div className="flex bg-surface-container rounded-xl p-1 text-[10px] font-bold">
-              <button onClick={() => setChartMode('line')} className={`px-3 py-1 rounded-lg cursor-pointer ${chartMode === 'line' ? 'bg-surface-container-lowest border border-outline-variant/20 shadow-xs' : 'text-on-surface-variant'}`}>Line</button>
-              <button onClick={() => setChartMode('area')} className={`px-3 py-1 rounded-lg cursor-pointer ${chartMode === 'area' ? 'bg-surface-container-lowest border border-outline-variant/20 shadow-xs' : 'text-on-surface-variant'}`}>Area</button>
-            </div>
-          </div>
-
-          {/* Simple vector representation of a chart to preserve high visual quality */}
-          <div className="h-44 bg-surface-container-low rounded-xl border border-outline-variant/40 flex items-end justify-between p-6 relative overflow-hidden">
-            <div className="absolute inset-0 flex flex-col justify-between py-6 px-4 pointer-events-none opacity-20">
-              <div className="border-t border-outline border-dashed w-full"></div>
-              <div className="border-t border-outline border-dashed w-full"></div>
-              <div className="border-t border-outline border-dashed w-full"></div>
-            </div>
-
-            {/* Sparkline curve */}
-            <svg className="absolute inset-0 w-full h-full px-6 py-8" viewBox="0 0 400 100" preserveAspectRatio="none">
-              {chartMode === 'area' && <path d="M 0 80 Q 80 40, 160 50 T 320 20 T 400 35 L 400 100 L 0 100 Z" fill="var(--color-primary)" opacity="0.16" />}
-              <path d="M 0 80 Q 80 40, 160 50 T 320 20 T 400 35" fill="none" stroke="var(--color-primary)" strokeWidth="3" />
-              <path d="M 0 90 Q 80 60, 160 75 T 320 50 T 400 65" fill="none" stroke="var(--color-secondary)" strokeWidth="2" strokeDasharray="4" />
-            </svg>
-
-            {/* X-axis labels */}
-            <div className="w-full flex justify-between text-[10px] font-bold uppercase tracking-wider text-on-surface-variant relative z-10">
-              <span>Jan</span>
-              <span>Feb</span>
-              <span>Mar</span>
-              <span>Apr</span>
-              <span>May</span>
-              <span>Jun</span>
-            </div>
-          </div>
+      {/* Strategic Exports Panel */}
+      <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/60 shadow-sm space-y-6">
+        <div className="border-b border-outline-variant/40 pb-4">
+          <h3 className="font-headline text-2xl font-bold text-on-surface">
+            Strategic Report Exports
+          </h3>
+          <p className="text-xs text-on-surface-variant font-medium mt-1">
+            Compile high-resolution datasets of fleet operations, fuel logs, and driver safety logs for compliance audits or strategic operations reviews.
+          </p>
         </div>
 
-        {/* Data Exports card */}
-        <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/60 shadow-sm flex flex-col justify-between">
-          <div className="space-y-6">
-            <h3 className="font-headline text-2xl font-bold text-on-surface border-b border-outline-variant/40 pb-4">
-              Export Center
-            </h3>
-            <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-              Compile high-resolution datasets of fleet operations, fuel logs, and driver safety logs for compliance audits or strategic operations reviews.
-            </p>
-            {exportError && (
-              <div className="p-3 rounded-xl bg-error-container text-on-error-container text-[11px] font-semibold border border-error/20 flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm text-error">report_problem</span>
-                <span>{exportError}</span>
-              </div>
-            )}
+        {exportError && (
+          <div className="p-4 rounded-xl bg-error-container text-on-error-container text-xs font-semibold border border-error/20 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base text-error">report_problem</span>
+            <span>{exportError}</span>
+          </div>
+        )}
 
-            {hasRole(['admin', 'fleet_manager', 'financial_analyst', 'safety_officer']) ? <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          {hasRole(['admin', 'fleet_manager', 'financial_analyst', 'safety_officer']) ? (
+            <>
               <button
                 type="button"
                 onClick={() => handleExport('csv')}
                 disabled={Boolean(exporting)}
-                className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-3 rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-4 rounded-2xl flex items-center justify-between text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
               >
-                <span className="flex items-center gap-2">
-                  <span className="material-symbols-outlined">csv</span>
+                <span className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-lg text-primary">csv</span>
                   {exporting === 'csv' ? 'Preparing CSV...' : 'Export Audit CSV Dataset'}
                 </span>
                 <span className="material-symbols-outlined">download</span>
@@ -205,24 +157,28 @@ export default function Reports() {
                 type="button"
                 onClick={() => handleExport('pdf')}
                 disabled={Boolean(exporting)}
-                className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-3 rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                className="w-full bg-surface-container-low border border-outline-variant/60 text-on-surface hover:border-primary hover:text-primary transition-all p-4 rounded-2xl flex items-center justify-between text-xs font-bold cursor-pointer disabled:opacity-60 disabled:cursor-wait"
               >
-                <span className="flex items-center gap-2">
-                  <span className="material-symbols-outlined">picture_as_pdf</span>
+                <span className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-lg text-primary">picture_as_pdf</span>
                   {exporting === 'pdf' ? 'Preparing PDF...' : 'Download Strategy PDF Report'}
                 </span>
                 <span className="material-symbols-outlined">download</span>
               </button>
-            </div> : <p className="text-xs text-on-surface-variant bg-surface-container-low border border-outline-variant/40 rounded-xl p-3">Your role has read-only report access. Exporting requires a management or audit role.</p>}
-          </div>
+            </>
+          ) : (
+            <p className="md:col-span-2 text-xs text-on-surface-variant bg-surface-container-low border border-outline-variant/40 rounded-xl p-4 font-medium">
+              Your role has read-only report access. Exporting requires a management or audit role.
+            </p>
+          )}
 
-          <div className="pt-6 border-t border-outline-variant/40 mt-6 flex items-center gap-3">
-            <span className="p-2 bg-primary-fixed text-primary rounded-xl">
+          <div className="flex items-center gap-3 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
+            <span className="p-2 bg-primary-fixed text-primary rounded-xl shrink-0">
               <span className="material-symbols-outlined text-lg">event_upcoming</span>
             </span>
             <div className="text-xs">
               <p className="font-bold text-on-surface">Next Audit Scheduled</p>
-              <p className="text-on-surface-variant mt-0.5">June 15, 2026</p>
+              <p className="text-on-surface-variant mt-0.5 font-medium">June 15, 2026</p>
             </div>
           </div>
         </div>
@@ -254,7 +210,6 @@ export default function Reports() {
                 <th className="px-6 py-4 font-bold text-on-surface-variant uppercase tracking-wider font-label">Vehicle Reference</th>
                 <th className="px-6 py-4 font-bold text-on-surface-variant uppercase tracking-wider font-label">Fuel Efficiency</th>
                 <th className="px-6 py-4 font-bold text-on-surface-variant uppercase tracking-wider font-label">Utilization Rate</th>
-                <th className="px-6 py-4 font-bold text-on-surface-variant uppercase tracking-wider font-label">ROI Contribution</th>
                 <th className="px-6 py-4 font-bold text-on-surface-variant uppercase tracking-wider font-label">Current Status</th>
                 <th className="px-6 py-4 font-bold text-on-surface-variant uppercase tracking-wider font-label text-right">Actions</th>
               </tr>
@@ -262,7 +217,7 @@ export default function Reports() {
             <tbody className="divide-y divide-outline-variant/40">
               {filteredVehicles.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-on-surface-variant font-medium">
+                  <td colSpan="5" className="px-6 py-8 text-center text-on-surface-variant font-medium">
                     No matching vehicle performance records found.
                   </td>
                 </tr>
@@ -281,7 +236,6 @@ export default function Reports() {
                       </td>
                       <td className="px-6 py-4 font-semibold text-on-surface">{v.fuel_efficiency.toFixed(1)} km/L</td>
                       <td className="px-6 py-4 font-semibold text-on-surface">{v.utilization_rate.toFixed(1)}%</td>
-                      <td className="px-6 py-4 font-semibold text-on-surface">{(v.roi_contribution * 100).toFixed(1)}%</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${statusClass}`}>
                           {v.status}

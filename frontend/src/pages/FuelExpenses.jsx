@@ -200,7 +200,7 @@ export default function FuelExpenses() {
   const maxVehicleCost = Math.max(...vehicleCostBars.map((bar) => bar.fuel + bar.maint), 1);
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left bg-surface/10">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left bg-surface/10">
       {error && (
         <div className="p-4 rounded-xl bg-error-container text-on-error-container text-xs font-medium border border-error/20 flex items-center gap-2">
           <span className="material-symbols-outlined text-base text-error">report_problem</span>
@@ -212,9 +212,10 @@ export default function FuelExpenses() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Card 1: Record Fuel Form */}
-        <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4 mb-6">
+        {hasRole(['driver', 'dispatcher', 'financial_analyst', 'admin', 'fleet_manager']) && (
+          <div className="lg:col-span-1 bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4 mb-6">
               <h3 className="font-headline text-2xl font-bold text-on-surface">Record Fuel</h3>
               <span className="material-symbols-outlined text-primary text-xl border border-primary/30 p-1 rounded-full cursor-pointer hover:bg-primary/10 transition-colors">add</span>
             </div>
@@ -304,7 +305,7 @@ export default function FuelExpenses() {
                   <input
                     type="text"
                     required
-                    placeholder="Shell Highway 12"
+                    placeholder="Mumbai-Pune HPCL"
                     value={fuelForm.location || ''}
                     onChange={(e) => setFuelForm({ ...fuelForm, location: e.target.value })}
                     className="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
@@ -387,14 +388,14 @@ export default function FuelExpenses() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Turnpike toll, headlight bulb change..."
+                    placeholder="e.g. Mumbai-Pune Expressway toll, headlight bulb change..."
                     value={expenseForm.notes}
                     onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
                     className="w-full bg-surface border border-outline-variant/60 rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
 
-                {hasRole(['driver', 'dispatcher', 'financial_analyst', 'admin']) && (
+                {hasRole(['driver', 'dispatcher', 'financial_analyst', 'admin', 'fleet_manager']) && (
                   <button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/10 transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer mt-6"
@@ -404,11 +405,12 @@ export default function FuelExpenses() {
                 )}
               </form>
             )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Card 2: Operational Cost per Vehicle Chart */}
-        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm flex flex-col justify-between">
+        <div className={`${hasRole(['driver', 'dispatcher', 'financial_analyst', 'admin', 'fleet_manager']) ? 'lg:col-span-2' : 'lg:col-span-3'} bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm flex flex-col justify-between`}>
           <div>
             <div className="flex flex-wrap justify-between items-center gap-2 border-b border-outline-variant/40 pb-4 mb-4">
               <div>

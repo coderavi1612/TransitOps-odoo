@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { formatWeight } from '../utils/formatters';
+import { regionOptionLabel, regionsByType } from '../utils/regions';
+import { useAuth } from '../context/AuthContext';
 
 export default function Trips() {
+  const { hasRole } = useAuth();
   const createTripReference = () => 'TRP-' + Math.floor(1000 + Math.random() * 9000);
 
   const [trips, setTrips] = useState([]);
@@ -12,11 +15,11 @@ export default function Trips() {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [palletCount, setPalletCount] = useState(11);
   const [unitCount, setUnitCount] = useState(142);
   const [activeTab, setActiveTab] = useState('All');
   
-  // Trip Configuration Form state
   const [formData, setFormData] = useState(() => ({
     name: createTripReference(),
     source: '',
@@ -29,6 +32,44 @@ export default function Trips() {
     planned_date: new Date().toISOString().split('T')[0],
     notes: '',
   }));
+
+  const [isDistanceDirty, setIsDistanceDirty] = useState(false);
+
+  // Auto-estimate distance based on source region and destination
+  useEffect(() => {
+    if (isDistanceDirty) return;
+
+    const selectedRegion = regions.find(r => String(r.id) === String(formData.region_id));
+    const regionName = selectedRegion ? selectedRegion.name : '';
+    const dest = (formData.destination || '').toLowerCase();
+    const src = regionName.toLowerCase();
+    
+    if (dest.trim().length > 2) {
+      let estimated = 300;
+      if (src.includes('maharashtra') && dest.includes('pune')) estimated = 150;
+      else if (src.includes('karnataka') && dest.includes('chennai')) estimated = 350;
+      else if (src.includes('delhi') && dest.includes('jaipur')) estimated = 280;
+      else if (src.includes('tamil nadu') && dest.includes('coimbatore')) estimated = 510;
+      else if (src.includes('gujarat') && dest.includes('surat')) estimated = 265;
+      else if (src.includes('west bengal') && dest.includes('bhubaneswar')) estimated = 440;
+      else if (src.includes('maharashtra') && dest.includes('delhi')) estimated = 1400;
+      else if (src.includes('maharashtra') && dest.includes('bengaluru')) estimated = 980;
+      else {
+        // Stable highway distance hashing based on string values
+        let hash = 0;
+        const str = regionName + formData.destination;
+        for (let i = 0; i < str.length; i++) {
+          hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        estimated = Math.abs(hash % 450) + 120;
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        planned_distance: String(estimated)
+      }));
+    }
+  }, [formData.region_id, formData.destination, regions, isDistanceDirty]);
 
   // Complete Trip modal states
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -93,6 +134,12 @@ export default function Trips() {
       return;
     }
 
+    const assignedVehicle = vehicles.find(v => v.id === formData.vehicle_id);
+    if (assignedVehicle && Number(formData.cargo_weight) > Number(assignedVehicle.capacity)) {
+      setError(`Validation Error: Cargo weight (${formData.cargo_weight} kg) exceeds vehicle capacity (${assignedVehicle.capacity} kg)`);
+      return;
+    }
+
     const body = {
       ...formData,
       source: regions.find((region) => String(region.id) === String(formData.region_id))?.name || formData.source || 'Dispatch Hub',
@@ -105,8 +152,29 @@ export default function Trips() {
 
     try {
       const createdTrip = await api.post('/api/trips', body);
+      const vehicle = vehicles.find(v => v.id === body.vehicle_id);
+      const driver = drivers.find(d => d.id === body.driver_id);
       if (dispatch && createdTrip?.id) {
         await api.post(`/api/trips/${createdTrip.id}/dispatch`);
+        window.dispatchEvent(new CustomEvent('mock-email', {
+          detail: {
+            subject: `[SMTP Log] Trip Dispatched: ${createdTrip.name || body.name}`,
+            body: `Trip ${createdTrip.name || body.name} has been successfully dispatched to the driver.\nAssigned Driver: ${driver?.name || 'Unknown'}\nAssigned Vehicle: ${vehicle?.registration_number || 'Unknown'} (${vehicle?.vehicle_name || ''})\nRoute: ${body.source} ➔ ${body.destination} (${body.planned_distance} km)\nCargo Weight: ${body.cargo_weight} kg`,
+            from: 'dispatcher@transitops.com',
+            to: 'all@transitops.com',
+            path: '/trips'
+          }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('mock-email', {
+          detail: {
+            subject: `[SMTP Log] Trip Draft Saved: ${createdTrip.name || body.name}`,
+            body: `A new draft trip ${createdTrip.name || body.name} has been saved.\nAssigned Driver: ${driver?.name || 'Unknown'}\nAssigned Vehicle: ${vehicle?.registration_number || 'Unknown'} (${vehicle?.vehicle_name || ''})\nRoute: ${body.source} ➔ ${body.destination} (${body.planned_distance} km)`,
+            from: 'dispatcher@transitops.com',
+            to: 'all@transitops.com',
+            path: '/trips'
+          }
+        }));
       }
       // Reset form ID
       setFormData(prev => ({
@@ -114,7 +182,9 @@ export default function Trips() {
         name: createTripReference(),
         destination: '',
         notes: '',
+        planned_distance: '300',
       }));
+      setIsDistanceDirty(false);
       loadData();
     } catch (err) {
       setError(err.message || 'Failed to create and dispatch trip.');
@@ -124,7 +194,17 @@ export default function Trips() {
   const handleDispatch = async (id) => {
     setError('');
     try {
+      const trip = trips.find(t => t.id === id);
       await api.post(`/api/trips/${id}/dispatch`);
+      window.dispatchEvent(new CustomEvent('mock-email', {
+        detail: {
+          subject: `[SMTP Log] Trip Dispatched: ${trip?.name || 'Trip'}`,
+          body: `Trip ${trip?.name || 'Trip'} has been successfully dispatched to the driver.\nAssigned Driver: ${trip?.drivers?.name || 'Assigned Driver'}\nRoute: ${trip?.source} ➔ ${trip?.destination} (${trip?.planned_distance} km)`,
+          from: 'dispatcher@transitops.com',
+          to: 'all@transitops.com',
+          path: '/trips'
+        }
+      }));
       loadData();
     } catch (err) {
       setError(err.message || 'Dispatch checks failed.');
@@ -164,6 +244,15 @@ export default function Trips() {
         end_odometer: parseFloat(completionData.end_odometer),
         fuel_consumed: parseFloat(completionData.fuel_consumed),
       });
+      window.dispatchEvent(new CustomEvent('mock-email', {
+        detail: {
+          subject: `[SMTP Log] Trip Completed: ${selectedTripForCompletion.name}`,
+          body: `Trip ${selectedTripForCompletion.name} has been successfully completed.\nVehicle: ${selectedTripForCompletion.vehicles?.registration_number || 'Vehicle'}\nDriver: ${selectedTripForCompletion.drivers?.name || 'Driver'}\nFinal Odometer: ${completionData.end_odometer} km\nFuel Consumed: ${completionData.fuel_consumed} L`,
+          from: 'driver.operator@transitops.com',
+          to: 'manager@transitops.com',
+          path: '/reports'
+        }
+      }));
       setShowCompleteModal(false);
       loadData();
     } catch (err) {
@@ -187,11 +276,18 @@ export default function Trips() {
   const availableDrivers = drivers.filter((d) => d.status === 'Available');
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {error && (
         <div className="p-4 rounded-xl bg-error-container text-on-error-container text-xs font-medium border border-error/20 flex items-center gap-2">
           <span className="material-symbols-outlined text-base text-error">report_problem</span>
           <span>{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 rounded-xl bg-green-50 text-green-800 text-xs font-medium border border-green-200 flex items-center gap-2">
+          <span className="material-symbols-outlined text-base text-green-700">check_circle</span>
+          <span>{success}</span>
         </div>
       )}
 
@@ -273,42 +369,44 @@ export default function Trips() {
                       </td>
                       <td className="px-6 py-4 font-medium text-on-surface">{formatWeight(t.cargo_weight)}</td>
                       <td className="px-6 py-4 text-right">
-                        <div className="relative inline-block group/menu">
-                          <button className="p-1 hover:bg-surface-container rounded-lg text-on-surface-variant">
-                            <span className="material-symbols-outlined text-base">more_vert</span>
-                          </button>
-                          
-                          {/* Dropdown Menu on hover/click */}
-                          <div className="absolute right-0 top-full mt-1 bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-lg z-20 py-1 hidden group-hover/menu:block w-36 text-left">
-                            {t.state === 'Draft' && (
-                              <button
-                                onClick={() => handleDispatch(t.id)}
-                                className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-on-surface flex items-center gap-1.5"
-                              >
-                                <span className="material-symbols-outlined text-sm text-primary">rocket_launch</span>
-                                Dispatch
-                              </button>
-                            )}
-                            {t.state === 'Dispatched' && (
-                              <button
-                                onClick={() => handleOpenCompleteModal(t)}
-                                className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-green-700 flex items-center gap-1.5"
-                              >
-                                <span className="material-symbols-outlined text-sm text-green-700">check_circle</span>
-                                Complete
-                              </button>
-                            )}
-                            {(t.state === 'Draft' || t.state === 'Dispatched') && (
-                              <button
-                                onClick={() => handleCancel(t.id)}
-                                className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-error flex items-center gap-1.5"
-                              >
-                                <span className="material-symbols-outlined text-sm text-error">block</span>
-                                Cancel
-                              </button>
-                            )}
+                        {hasRole(['dispatcher', 'admin', 'fleet_manager', 'driver']) && (
+                          <div className="relative inline-block group/menu">
+                            <button className="p-1 hover:bg-surface-container rounded-lg text-on-surface-variant">
+                              <span className="material-symbols-outlined text-base">more_vert</span>
+                            </button>
+                            
+                            {/* Dropdown Menu on hover/click */}
+                            <div className="absolute right-0 top-full mt-1 bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-lg z-20 py-1 hidden group-hover/menu:block w-36 text-left">
+                              {t.state === 'Draft' && hasRole(['dispatcher', 'admin']) && (
+                                <button
+                                  onClick={() => handleDispatch(t.id)}
+                                  className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-on-surface flex items-center gap-1.5"
+                                >
+                                  <span className="material-symbols-outlined text-sm text-primary">rocket_launch</span>
+                                  Dispatch
+                                </button>
+                              )}
+                              {t.state === 'Dispatched' && hasRole(['dispatcher', 'admin', 'driver']) && (
+                                <button
+                                  onClick={() => handleOpenCompleteModal(t)}
+                                  className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-green-700 flex items-center gap-1.5"
+                                >
+                                  <span className="material-symbols-outlined text-sm text-green-700">check_circle</span>
+                                  Complete
+                                </button>
+                              )}
+                              {(t.state === 'Draft' || t.state === 'Dispatched') && hasRole(['dispatcher', 'admin', 'fleet_manager']) && (
+                                <button
+                                  onClick={() => handleCancel(t.id)}
+                                  className="w-full px-4 py-2 hover:bg-surface-container text-xs font-semibold text-error flex items-center gap-1.5"
+                                >
+                                  <span className="material-symbols-outlined text-sm text-error">block</span>
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -319,12 +417,14 @@ export default function Trips() {
       </div>
 
       {/* Title Header for Configuration Form */}
-      <div className="text-left">
-        <h3 className="font-headline text-2xl font-bold text-on-surface">New Trip Configuration</h3>
-      </div>
+      {hasRole(['dispatcher', 'admin']) && (
+        <>
+          <div className="text-left">
+            <h3 className="font-headline text-2xl font-bold text-on-surface">New Trip Configuration</h3>
+          </div>
 
-      {/* Main Form Grid Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Form Grid Columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: Route and Asset Allocations */}
         <div className="lg:col-span-2 space-y-8">
@@ -339,7 +439,7 @@ export default function Trips() {
               <span className="material-symbols-outlined text-primary text-3xl">map_search</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Source Hub</label>
                 <div className="relative">
@@ -349,7 +449,12 @@ export default function Trips() {
                     onChange={(e) => setFormData({ ...formData, region_id: e.target.value })}
                     className="w-full bg-surface border border-outline-variant/60 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface cursor-pointer"
                   >
-                    {regions.map(r => <option key={r.id} value={r.id}>{r.name} Region Hub</option>)}
+                    <optgroup label="States">
+                      {regionsByType(regions, 'State').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)} Hub</option>)}
+                    </optgroup>
+                    <optgroup label="Union Territories">
+                      {regionsByType(regions, 'Union Territory').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)} Hub</option>)}
+                    </optgroup>
                   </select>
                 </div>
               </div>
@@ -364,6 +469,25 @@ export default function Trips() {
                     placeholder="Enter delivery address..."
                     value={formData.destination}
                     onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                    className="w-full bg-surface border border-outline-variant/60 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Planned Distance (km)</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">edit_road</span>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="Distance in km"
+                    value={formData.planned_distance}
+                    onChange={(e) => {
+                      setFormData({ ...formData, planned_distance: e.target.value });
+                      setIsDistanceDirty(true);
+                    }}
                     className="w-full bg-surface border border-outline-variant/60 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -386,7 +510,7 @@ export default function Trips() {
                 <div className="text-center px-4">
                   <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider font-label">Est. Travel Time</p>
                   <p className="font-headline text-lg font-bold text-on-surface mt-0.5">
-                    {Math.round((formData.planned_distance || 300) / 60)}h {Math.round((formData.planned_distance || 300) % 60)}m
+                    {Math.floor((Number(formData.planned_distance) || 300) / 60)}h {Math.round((Number(formData.planned_distance) || 300) % 60)}m
                   </p>
                 </div>
               </div>
@@ -555,7 +679,22 @@ export default function Trips() {
             <div className="flex gap-3 pt-2">
               <button 
                 type="button"
-                onClick={() => setFormData((current) => ({ ...current, cargo_weight: String(palletCount * 90) }))}
+                onClick={() => {
+                  setError('');
+                  const weight = palletCount * 90;
+                  const palletNote = `${palletCount} Pallets (${unitCount} units) added to cargo.`;
+                  setFormData((current) => {
+                    const hasNote = current.notes.includes(palletNote);
+                    const newNotes = hasNote ? current.notes : `${current.notes}${current.notes ? '\n' : ''}${palletNote}`;
+                    return {
+                      ...current,
+                      cargo_weight: String(weight),
+                      notes: newNotes
+                    };
+                  });
+                  setSuccess(`Successfully added ${palletCount} Pallets (${weight.toLocaleString()} kg) to shipment cargo allocation.`);
+                  setTimeout(() => setSuccess(''), 5000);
+                }}
                 className="flex-1 bg-primary text-white text-xs font-bold py-2.5 rounded-xl hover:bg-primary/95 transition-colors cursor-pointer"
               >
                 Add Items
@@ -633,6 +772,8 @@ export default function Trips() {
           </button>
         </div>
       </div>
+        </>
+      )}
 
 
 

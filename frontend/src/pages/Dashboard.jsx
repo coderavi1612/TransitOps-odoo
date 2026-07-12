@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { formatCurrency, formatWeight } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
+import { regionOptionLabel, regionsByType } from '../utils/regions';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export default function Dashboard() {
   const capacity = Number(featuredVehicle?.capacity || 0);
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {/* Top Filter & Actions Row */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/40">
         <div className="flex flex-wrap gap-3">
@@ -92,7 +93,12 @@ export default function Dashboard() {
               className="pl-4 pr-10 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none appearance-none cursor-pointer"
             >
               <option value="All">All Over India</option>
-              {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              <optgroup label="States">
+                {regionsByType(regions, 'State').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+              </optgroup>
+              <optgroup label="Union Territories">
+                {regionsByType(regions, 'Union Territory').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+              </optgroup>
             </select>
             <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
           </div>

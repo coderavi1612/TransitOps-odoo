@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { regionOptionLabel, regionsByType } from '../utils/regions';
 
 export default function Drivers() {
   const { hasRole } = useAuth();
@@ -184,7 +185,7 @@ export default function Drivers() {
   }
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {/* Top Filter and Search Bar */}
       <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/40 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -414,7 +415,7 @@ export default function Drivers() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Marcus Sterling"
+                    placeholder="Rajesh Kumar"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -438,7 +439,7 @@ export default function Drivers() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="m.sterling@transitops.in"
+                    placeholder="rajesh.kumar@transitops.in"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -549,7 +550,12 @@ export default function Drivers() {
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   >
                     <option value="">No Region</option>
-                    {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    <optgroup label="States">
+                      {regionsByType(regions, 'State').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+                    </optgroup>
+                    <optgroup label="Union Territories">
+                      {regionsByType(regions, 'Union Territory').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+                    </optgroup>
                   </select>
                 </div>
 

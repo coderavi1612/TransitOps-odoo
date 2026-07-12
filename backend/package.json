@@ -3,13 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "migrate": "node migrate.js",
-    "cleanup:test-data": "node cleanup-test-data.js",
-    "seed:india": "node seed-india-demo.js",
-    "seed:admin": "node seed-dev-admin.js",
-    "test:e2e": "node test-e2e.js",
-    "test:roles": "node test-role-e2e.js",
-    "test": "node test-trips-maintenance-fuel.js"
+    "migrate": "node migrate.js"
   },
   "keywords": [],
   "author": "",

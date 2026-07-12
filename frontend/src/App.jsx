@@ -1,9 +1,11 @@
+
 import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import MockEmailServer from './components/MockEmailServer';
 
 // Lazy loaded page components for optimized bundle sizes
 const Login = lazy(() => import('./pages/Login'));
@@ -35,6 +37,9 @@ function MainLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Mock SMTP Email Server floating client */}
+      <MockEmailServer />
     </div>
   );
 }
@@ -57,13 +62,21 @@ export default function App() {
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/vehicles" element={<Vehicles />} />
-                <Route path="/drivers" element={<Drivers />} />
                 <Route path="/trips" element={<Trips />} />
                 <Route path="/maintenance" element={<Maintenance />} />
-                <Route path="/fuel-expenses" element={<FuelExpenses />} />
-                <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/documents" element={<Documents />} />
+
+                {/* Role-specific protected routes */}
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver', 'safety_officer', 'dispatcher']} />}>
+                  <Route path="/drivers" element={<Drivers />} />
+                </Route>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'driver', 'financial_analyst', 'dispatcher']} />}>
+                  <Route path="/fuel-expenses" element={<FuelExpenses />} />
+                </Route>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'fleet_manager', 'safety_officer', 'financial_analyst', 'dispatcher']} />}>
+                  <Route path="/reports" element={<Reports />} />
+                </Route>
               </Route>
             </Route>
           </Routes>

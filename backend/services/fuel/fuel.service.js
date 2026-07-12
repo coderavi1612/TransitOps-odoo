@@ -164,14 +164,14 @@ class FuelService {
 
     const values = (data || []).map((log) => log.fuel_efficiency).filter(Boolean);
     if (values.length === 0) {
-      return { average: 0, best: 0, worst: 0, count: 0 };
+      return { avg_efficiency: 0, best_efficiency: 0, worst_efficiency: 0, total_logs: 0 };
     }
 
-    const average = values.reduce((a, b) => a + b, 0) / values.length;
-    const best = Math.max(...values);
-    const worst = Math.min(...values);
+    const avg_efficiency = values.reduce((a, b) => a + b, 0) / values.length;
+    const best_efficiency = Math.max(...values);
+    const worst_efficiency = Math.min(...values);
 
-    return { average, best, worst, count: values.length };
+    return { avg_efficiency, best_efficiency, worst_efficiency, total_logs: values.length };
   }
 }
 

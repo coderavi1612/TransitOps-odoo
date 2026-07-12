@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency, formatWeight } from '../utils/formatters';
+import { regionOptionLabel, regionsByType } from '../utils/regions';
 
 export default function Vehicles() {
   const { hasRole } = useAuth();
@@ -16,6 +17,7 @@ export default function Vehicles() {
   const [filterRegion, setFilterRegion] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterType, setFilterType] = useState('All');
+  const [sortBy, setSortBy] = useState('name-asc');
 
   // Modal form states
   const [showModal, setShowModal] = useState(false);
@@ -159,12 +161,22 @@ export default function Vehicles() {
     return matchesSearch && matchesRegion && matchesStatus && matchesType;
   });
 
+  const sortedVehicles = [...filteredVehicles].sort((a, b) => {
+    if (sortBy === 'name-asc') return (a.vehicle_name || '').localeCompare(b.vehicle_name || '');
+    if (sortBy === 'name-desc') return (b.vehicle_name || '').localeCompare(a.vehicle_name || '');
+    if (sortBy === 'odometer-asc') return (a.odometer || 0) - (b.odometer || 0);
+    if (sortBy === 'odometer-desc') return (b.odometer || 0) - (a.odometer || 0);
+    if (sortBy === 'capacity-asc') return (a.capacity || 0) - (b.capacity || 0);
+    if (sortBy === 'capacity-desc') return (b.capacity || 0) - (a.capacity || 0);
+    return 0;
+  });
+
   const fleetCount = vehicles.length;
   const onTripCount = vehicles.filter(v => v.status === 'On Trip').length;
   const inShopCount = vehicles.filter(v => v.status === 'In Shop').length;
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-surface-container-lowest p-6 rounded-[24px] border border-outline-variant/40 shadow-sm flex items-center gap-4">
@@ -219,7 +231,12 @@ export default function Vehicles() {
               className="pl-4 pr-10 py-2.5 bg-surface border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none cursor-pointer"
             >
               <option value="All">All Over India</option>
-              {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              <optgroup label="States">
+                {regionsByType(regions, 'State').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+              </optgroup>
+              <optgroup label="Union Territories">
+                {regionsByType(regions, 'Union Territory').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+              </optgroup>
             </select>
 
             <select
@@ -241,6 +258,19 @@ export default function Vehicles() {
               <option value="On Trip">On Trip</option>
               <option value="In Shop">In Shop</option>
               <option value="Retired">Retired</option>
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="pl-4 pr-10 py-2.5 bg-surface border border-outline-variant/60 rounded-xl text-xs font-semibold text-on-surface outline-none cursor-pointer"
+            >
+              <option value="name-asc">Sort: Name (A-Z)</option>
+              <option value="name-desc">Sort: Name (Z-A)</option>
+              <option value="odometer-asc">Sort: Odometer (Low to High)</option>
+              <option value="odometer-desc">Sort: Odometer (High to Low)</option>
+              <option value="capacity-asc">Sort: Capacity (Low to High)</option>
+              <option value="capacity-desc">Sort: Capacity (High to Low)</option>
             </select>
 
             {hasRole(['fleet_manager', 'admin']) && (
@@ -273,14 +303,14 @@ export default function Vehicles() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/40">
-              {filteredVehicles.length === 0 ? (
+              {sortedVehicles.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="px-6 py-12 text-center text-on-surface-variant font-medium text-sm">
                     No vehicles found matching the filtered parameters.
                   </td>
                 </tr>
               ) : (
-                filteredVehicles.map((v) => {
+                sortedVehicles.map((v) => {
                   let statusColor = 'bg-surface-container text-on-surface-variant border border-outline-variant/30';
                   if (v.status === 'Available') statusColor = 'bg-green-50 text-green-700 border border-green-150';
                   if (v.status === 'On Trip') statusColor = 'bg-blue-50 text-blue-700 border border-blue-150';
@@ -376,7 +406,7 @@ export default function Vehicles() {
                     required
                     value={formData.registration_number}
                     onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
-                    placeholder="MH-12-AB-7614"
+                    placeholder="MH12AB7614"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -388,7 +418,7 @@ export default function Vehicles() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Atlas-01"
+                    placeholder="Mumbai Linehaul 01"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -400,7 +430,7 @@ export default function Vehicles() {
                     required
                     value={formData.vehicle_model}
                     onChange={(e) => setFormData({ ...formData, vehicle_model: e.target.value, vehicle_name: e.target.value })}
-                    placeholder="Prime G2"
+                    placeholder="Tata Prima 5530.S"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -412,7 +442,7 @@ export default function Vehicles() {
                     required
                     value={formData.manufacturer}
                     onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                    placeholder="Atlas Trucks"
+                    placeholder="Tata Motors"
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   />
                 </div>
@@ -436,7 +466,12 @@ export default function Vehicles() {
                     className="w-full bg-surface border border-outline-variant rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
                   >
                     <option value="">No Region</option>
-                    {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    <optgroup label="States">
+                      {regionsByType(regions, 'State').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+                    </optgroup>
+                    <optgroup label="Union Territories">
+                      {regionsByType(regions, 'Union Territory').map(r => <option key={r.id} value={r.id}>{regionOptionLabel(r)}</option>)}
+                    </optgroup>
                   </select>
                 </div>
 

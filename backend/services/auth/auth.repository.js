@@ -19,13 +19,13 @@ class AuthRepository {
   }
 
   async createProfile(id, email, full_name, phone) {
-    return supabaseAdmin.from('profiles').insert({
+    return supabaseAdmin.from('profiles').upsert({
       id,
       full_name: full_name || '',
       email,
       phone: phone || null,
       active: true,
-    });
+    }, { onConflict: 'id' });
   }
 
   async getProfile(userId) {

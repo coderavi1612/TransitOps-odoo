@@ -63,6 +63,16 @@ export default function Maintenance() {
 
     try {
       await api.post('/api/maintenance', body);
+      const vehicle = vehicles.find(v => v.id === body.vehicle_id);
+      window.dispatchEvent(new CustomEvent('mock-email', {
+        detail: {
+          subject: `[SMTP Alert] Vehicle Checked in for Shop: ${vehicle?.registration_number || 'Vehicle'}`,
+          body: `Vehicle ${vehicle?.registration_number || 'Vehicle'} (${vehicle?.vehicle_name || ''}) has been checked into the maintenance shop.\nReason: ${body.maintenance_type || 'Scheduled Service'}\nScheduled Date: ${body.scheduled_date}\nCost: ₹${body.cost}`,
+          from: 'shop.dispatcher@transitops.com',
+          to: 'manager@transitops.com',
+          path: '/maintenance'
+        }
+      }));
       // Reset notes/cost
       setFormData(prev => ({
         ...prev,
@@ -94,6 +104,15 @@ export default function Maintenance() {
         cost: Number(log?.cost || 0),
         odometer: Number(vehicle?.odometer || 0),
       });
+      window.dispatchEvent(new CustomEvent('mock-email', {
+        detail: {
+          subject: `[SMTP Log] Maintenance Completed: ${vehicle?.registration_number || 'Vehicle'}`,
+          body: `Maintenance for vehicle ${vehicle?.registration_number || 'Vehicle'} has been closed.\nService Done: ${log?.maintenance_type}\nFinal Cost: ₹${log?.cost}\nOdometer reading updated.`,
+          from: 'shop.dispatcher@transitops.com',
+          to: 'manager@transitops.com',
+          path: '/maintenance'
+        }
+      }));
       loadData();
     } catch (err) {
       setError(err.message || 'Failed to close log.');
@@ -135,7 +154,7 @@ export default function Maintenance() {
     .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))[0];
 
   return (
-    <div className="flex-1 p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+    <div className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto max-w-7xl mx-auto w-full text-left">
       {error && (
         <div className="p-4 rounded-xl bg-error-container text-on-error-container text-xs font-medium border border-error/20 flex items-center gap-2">
           <span className="material-symbols-outlined text-base text-error">report_problem</span>
@@ -225,8 +244,9 @@ export default function Maintenance() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Side: Schedule Form (spans 2 columns) */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm relative">
+        {hasRole(['fleet_manager', 'admin']) && (
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 shadow-sm relative">
             <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4 mb-6">
               <h3 className="font-headline text-2xl font-bold text-on-surface">Schedule Maintenance</h3>
               <span className="px-3 py-1 bg-rose-50 text-rose-800 text-[10px] font-bold rounded-full border border-rose-100 uppercase tracking-wider">
@@ -319,18 +339,19 @@ export default function Maintenance() {
                 )}
               </div>
             </form>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Side: Recent Records List (spans 1 column) */}
-        <div className="lg:col-span-1 space-y-6 text-xs">
+        {/* Right Side: Recent Records List */}
+        <div className={`${hasRole(['fleet_manager', 'admin']) ? 'lg:col-span-1' : 'lg:col-span-3'} space-y-6 text-xs`}>
           <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-6 shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4">
               <h3 className="font-headline text-lg font-bold text-on-surface">Recent Records</h3>
               <button onClick={() => api.download('/api/dashboard/reports/maintenance/export', 'transitops-maintenance.csv').catch((err) => setError(err.message))} className="text-xs font-bold text-primary hover:underline">Export CSV</button>
             </div>
 
-            <div className="space-y-4 overflow-y-auto max-h-[500px] pr-1">
+            <div className={`space-y-4 overflow-y-auto max-h-[500px] pr-1 ${!hasRole(['fleet_manager', 'admin']) ? 'grid grid-cols-1 md:grid-cols-3 gap-4 space-y-0 max-h-none' : ''}`}>
               {logs.length === 0 ? (
                 <p className="text-center py-8 text-on-surface-variant font-medium">
                   No maintenance records logged in fleet history.

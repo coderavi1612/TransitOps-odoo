@@ -62,6 +62,13 @@ class TripsService {
   }
 
   async createTrip(body) {
+    if (body.vehicle_id) {
+      const { data: vehicle } = await supabaseAdmin.from('vehicles').select('capacity').eq('id', body.vehicle_id).single();
+      if (vehicle && body.cargo_weight && Number(body.cargo_weight) > Number(vehicle.capacity)) {
+        throw new Error(`Cargo weight (${body.cargo_weight} kg) exceeds vehicle capacity (${vehicle.capacity} kg)`);
+      }
+    }
+
     const { data, error } = await tripsRepository.createTrip({
       ...body,
       state: 'Draft',
@@ -89,13 +96,17 @@ class TripsService {
     }
 
     const [{ data: vehicle, error: vehicleFetchError }, { data: driver, error: driverFetchError }] = await Promise.all([
-      supabaseAdmin.from('vehicles').select('id, status, odometer').eq('id', trip.vehicle_id).is('deleted_at', null).single(),
+      supabaseAdmin.from('vehicles').select('id, status, odometer, capacity').eq('id', trip.vehicle_id).is('deleted_at', null).single(),
       supabaseAdmin.from('drivers').select('id, status').eq('id', trip.driver_id).is('deleted_at', null).single(),
     ]);
     if (vehicleFetchError || !vehicle) throw new Error('Assigned vehicle was not found');
     if (driverFetchError || !driver) throw new Error('Assigned driver was not found');
     if (vehicle.status !== 'Available') throw new Error(`Vehicle is ${vehicle.status} and cannot be dispatched`);
     if (driver.status !== 'Available') throw new Error(`Driver is ${driver.status} and cannot be dispatched`);
+
+    if (trip.cargo_weight && vehicle.capacity && Number(trip.cargo_weight) > Number(vehicle.capacity)) {
+      throw new Error(`Cargo weight (${trip.cargo_weight} kg) exceeds vehicle capacity (${vehicle.capacity} kg)`);
+    }
 
     const dispatchTime = new Date().toISOString();
     const { error: tripUpdateErr } = await supabaseAdmin
